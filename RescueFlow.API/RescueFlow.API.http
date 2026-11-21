@@ -1,0 +1,6 @@
+@RescueFlow.API_HostAddress = http://localhost:5055
+
+GET {{RescueFlow.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
