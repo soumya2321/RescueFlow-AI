@@ -1,6 +1,22 @@
-@RescueFlow.API_HostAddress = http://localhost:5055
+@baseUrl = http://localhost:5055
 
-GET {{RescueFlow.API_HostAddress}}/weatherforecast/
-Accept: application/json
+### Register
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
 
-###
+{
+  "fullName": "Devika Test",
+  "email": "devika.test@rescueflow.ai",
+  "password": "Password123!",
+  "role": "Donor",
+  "phone": "9876543210"
+}
+
+### Login
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "devika.test@rescueflow.ai",
+  "password": "Password123!"
+}
