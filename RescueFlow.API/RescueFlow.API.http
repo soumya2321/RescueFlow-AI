@@ -1,6 +1,59 @@
-@RescueFlow.API_HostAddress = http://localhost:5055
 
-GET {{RescueFlow.API_HostAddress}}/weatherforecast/
-Accept: application/json
+@baseUrl = http://localhost:5055
 
-###
+### 1. CREATE DONATION
+POST {{baseUrl}}/api/donations
+Content-Type: application/json
+
+{
+  "donorId": 1,
+  "foodName": "Vegetable Rice",
+  "foodCategory": "Cooked Food",
+  "quantity": 10,
+  "unit": "kg",
+  "foodCondition": "Fresh",
+  "storageDetails": "Refrigerated",
+  "preparedAt": "2026-11-21T10:00:00Z",
+  "availableUntil": "2026-12-01T10:00:00Z",
+  "pickupDeadline": "2026-11-30T20:00:00Z"
+}
+
+### 2. GET ALL DONATIONS
+GET {{baseUrl}}/api/donations
+
+### 3. GET DONATION BY ID
+GET {{baseUrl}}/api/donations/1
+
+### 4. UPDATE DONATION
+PUT {{baseUrl}}/api/donations/1
+Content-Type: application/json
+
+{
+  "donorId": 1,
+  "foodName": "Updated Vegetable Rice",
+  "foodCategory": "Cooked Food",
+  "quantity": 20,
+  "unit": "kg",
+  "foodCondition": "Fresh",
+  "storageDetails": "Refrigerated",
+  "preparedAt": "2026-11-21T10:00:00Z",
+  "availableUntil": "2026-12-01T10:00:00Z",
+  "pickupDeadline": "2026-11-30T20:00:00Z"
+}
+
+### 5. UPDATE DONATION STATUS
+PATCH {{baseUrl}}/api/donations/1/status
+Content-Type: application/json
+
+{
+  "status": "Accepted"
+}
+
+### 6. GET DONATION URGENCY
+GET {{baseUrl}}/api/donations/1/urgency
+
+### 7. GET URGENCY RANKING
+GET {{baseUrl}}/api/donations/urgency-ranking
+
+### 8. DELETE DONATION
+DELETE {{baseUrl}}/api/donations/1
