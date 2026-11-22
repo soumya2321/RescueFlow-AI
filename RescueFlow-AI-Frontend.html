@@ -1,0 +1,1762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RescueFlow AI — Intelligent Food Waste Prevention & Redistribution</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --primary: #0d9488;
+      --primary-dark: #0f766e;
+      --primary-light: #14b8a6;
+      --accent: #f59e0b;
+      --danger: #ef4444;
+      --success: #10b981;
+      --bg: #f0fdfa;
+      --card: #ffffff;
+      --text: #134e4a;
+      --muted: #5eead4;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: linear-gradient(135deg, #ecfdf5 0%, #f0fdfa 40%, #ccfbf1 100%);
+      min-height: 100vh;
+      color: var(--text);
+      margin: 0;
+    }
+
+    /* ===== Auth Pages ===== */
+    .auth-wrapper {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      background: 
+        radial-gradient(ellipse at 20% 30%, rgba(20, 184, 166, 0.25) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 70%, rgba(245, 158, 11, 0.18) 0%, transparent 50%),
+        linear-gradient(160deg, #0f766e 0%, #134e4a 45%, #0d9488 100%);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .auth-wrapper::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: 
+        url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+      pointer-events: none;
+    }
+
+    .auth-card {
+      background: rgba(255, 255, 255, 0.97);
+      border-radius: 1.5rem;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
+      width: 100%;
+      max-width: 440px;
+      padding: 2.5rem;
+      position: relative;
+      z-index: 1;
+      backdrop-filter: blur(12px);
+    }
+
+    .auth-logo {
+      width: 72px;
+      height: 72px;
+      background: linear-gradient(135deg, #0d9488, #14b8a6);
+      border-radius: 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1.25rem;
+      box-shadow: 0 10px 25px rgba(13, 148, 136, 0.4);
+    }
+
+    .auth-logo i { font-size: 2.2rem; color: white; }
+
+    .auth-title {
+      font-weight: 800;
+      font-size: 1.65rem;
+      text-align: center;
+      color: #0f766e;
+      margin-bottom: 0.25rem;
+    }
+
+    .auth-subtitle {
+      text-align: center;
+      color: #64748b;
+      font-size: 0.95rem;
+      margin-bottom: 1.75rem;
+    }
+
+    .form-label { font-weight: 600; color: #334155; font-size: 0.875rem; }
+
+    .form-control, .form-select {
+      border-radius: 0.75rem;
+      border: 1.5px solid #e2e8f0;
+      padding: 0.7rem 1rem;
+      font-size: 0.95rem;
+      transition: all 0.2s;
+    }
+
+    .form-control:focus, .form-select:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.2);
+    }
+
+    .btn-primary-custom {
+      background: linear-gradient(135deg, #0d9488, #14b8a6);
+      border: none;
+      border-radius: 0.75rem;
+      padding: 0.75rem 1.5rem;
+      font-weight: 600;
+      color: white;
+      transition: all 0.25s;
+      width: 100%;
+    }
+
+    .btn-primary-custom:hover {
+      background: linear-gradient(135deg, #0f766e, #0d9488);
+      transform: translateY(-1px);
+      box-shadow: 0 8px 20px rgba(13, 148, 136, 0.35);
+      color: white;
+    }
+
+    .demo-accounts {
+      background: #f0fdfa;
+      border-radius: 0.85rem;
+      padding: 1rem;
+      margin-top: 1.5rem;
+      border: 1px solid #99f6e4;
+    }
+
+    .demo-accounts h6 {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #0f766e;
+      margin-bottom: 0.6rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .demo-btn {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      background: white;
+      border: 1px solid #ccfbf1;
+      border-radius: 0.6rem;
+      padding: 0.55rem 0.85rem;
+      margin-bottom: 0.4rem;
+      font-size: 0.82rem;
+      color: #134e4a;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .demo-btn:hover {
+      border-color: #14b8a6;
+      background: #ecfdf5;
+      transform: translateX(3px);
+    }
+
+    .demo-btn .role-badge {
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 0.15rem 0.5rem;
+      border-radius: 999px;
+      background: #ccfbf1;
+      color: #0f766e;
+    }
+
+    /* ===== App Layout ===== */
+    .app-shell { display: none; min-height: 100vh; }
+
+    .sidebar {
+      width: 260px;
+      background: linear-gradient(180deg, #0f766e 0%, #134e4a 100%);
+      color: white;
+      position: fixed;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 4px 0 24px rgba(0,0,0,0.12);
+    }
+
+    .sidebar-brand {
+      padding: 1.4rem 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      border-bottom: 1px solid rgba(255,255,255,0.12);
+    }
+
+    .sidebar-brand .logo-icon {
+      width: 42px;
+      height: 42px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 0.75rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+    }
+
+    .sidebar-brand h5 {
+      margin: 0;
+      font-weight: 700;
+      font-size: 1.1rem;
+      letter-spacing: -0.02em;
+    }
+
+    .sidebar-brand small {
+      opacity: 0.7;
+      font-size: 0.7rem;
+    }
+
+    .nav-section {
+      padding: 1rem 0.75rem;
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .nav-link-custom {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.7rem 1rem;
+      border-radius: 0.7rem;
+      color: rgba(255,255,255,0.85);
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 0.92rem;
+      margin-bottom: 0.25rem;
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+
+    .nav-link-custom:hover, .nav-link-custom.active {
+      background: rgba(255,255,255,0.15);
+      color: white;
+    }
+
+    .nav-link-custom i { font-size: 1.15rem; width: 22px; text-align: center; }
+
+    .sidebar-footer {
+      padding: 1rem 1.25rem;
+      border-top: 1px solid rgba(255,255,255,0.12);
+    }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .user-avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.95rem;
+    }
+
+    .user-info .name { font-weight: 600; font-size: 0.9rem; }
+    .user-info .role { font-size: 0.75rem; opacity: 0.75; }
+
+    .main-content {
+      margin-left: 260px;
+      min-height: 100vh;
+      padding: 1.75rem 2rem;
+      background: transparent;
+    }
+
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.75rem;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .page-header h2 {
+      font-weight: 800;
+      font-size: 1.6rem;
+      color: #0f766e;
+      margin: 0;
+    }
+
+    .page-header p {
+      color: #64748b;
+      margin: 0.25rem 0 0;
+      font-size: 0.95rem;
+    }
+
+    /* Cards & Stats */
+    .stat-card {
+      background: white;
+      border-radius: 1.1rem;
+      padding: 1.35rem;
+      box-shadow: 0 4px 20px rgba(13, 148, 136, 0.08);
+      border: 1px solid rgba(13, 148, 136, 0.08);
+      height: 100%;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 28px rgba(13, 148, 136, 0.14);
+    }
+
+    .stat-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 0.9rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.35rem;
+      margin-bottom: 0.85rem;
+    }
+
+    .stat-value {
+      font-size: 1.75rem;
+      font-weight: 800;
+      color: #0f766e;
+      line-height: 1.1;
+    }
+
+    .stat-label {
+      font-size: 0.85rem;
+      color: #64748b;
+      margin-top: 0.2rem;
+    }
+
+    .card-custom {
+      background: white;
+      border-radius: 1.1rem;
+      border: 1px solid rgba(13, 148, 136, 0.08);
+      box-shadow: 0 4px 20px rgba(13, 148, 136, 0.06);
+      overflow: hidden;
+    }
+
+    .card-custom .card-header {
+      background: transparent;
+      border-bottom: 1px solid #e2e8f0;
+      padding: 1.1rem 1.35rem;
+      font-weight: 700;
+      color: #0f766e;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .card-custom .card-body { padding: 1.35rem; }
+
+    /* Tables */
+    .table-custom {
+      margin: 0;
+      font-size: 0.9rem;
+    }
+
+    .table-custom thead th {
+      background: #f0fdfa;
+      color: #0f766e;
+      font-weight: 600;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      border: none;
+      padding: 0.85rem 1rem;
+    }
+
+    .table-custom tbody td {
+      padding: 0.9rem 1rem;
+      vertical-align: middle;
+      border-color: #f1f5f9;
+    }
+
+    .badge-status {
+      font-weight: 600;
+      font-size: 0.72rem;
+      padding: 0.3rem 0.65rem;
+      border-radius: 999px;
+    }
+
+    .badge-pending { background: #fef3c7; color: #b45309; }
+    .badge-matched { background: #dbeafe; color: #1d4ed8; }
+    .badge-picked { background: #d1fae5; color: #047857; }
+    .badge-completed { background: #ccfbf1; color: #0f766e; }
+    .badge-urgent { background: #fee2e2; color: #b91c1c; }
+    .badge-high { background: #ffedd5; color: #c2410c; }
+    .badge-medium { background: #fef9c3; color: #a16207; }
+    .badge-low { background: #ecfdf5; color: #047857; }
+
+    /* Forms inside app */
+    .form-section-title {
+      font-weight: 700;
+      color: #0f766e;
+      font-size: 1.05rem;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    /* Urgency indicator */
+    .urgency-bar {
+      height: 6px;
+      border-radius: 999px;
+      background: #e2e8f0;
+      overflow: hidden;
+    }
+
+    .urgency-fill {
+      height: 100%;
+      border-radius: 999px;
+      transition: width 0.4s;
+    }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: 3rem 1.5rem;
+      color: #94a3b8;
+    }
+
+    .empty-state i {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      opacity: 0.5;
+    }
+
+    /* Mobile */
+    .mobile-toggle {
+      display: none;
+      position: fixed;
+      bottom: 1.25rem;
+      right: 1.25rem;
+      z-index: 200;
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #0d9488, #14b8a6);
+      color: white;
+      border: none;
+      box-shadow: 0 8px 24px rgba(13, 148, 136, 0.4);
+      font-size: 1.4rem;
+    }
+
+    @media (max-width: 991.98px) {
+      .sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+      }
+      .sidebar.open { transform: translateX(0); }
+      .main-content { margin-left: 0; padding: 1.25rem; }
+      .mobile-toggle { display: flex; align-items: center; justify-content: center; }
+    }
+
+    /* Toast */
+    .toast-container { z-index: 1100; }
+
+    /* Role specific accent */
+    .role-donor .stat-icon { background: #ccfbf1; color: #0d9488; }
+    .role-ngo .stat-icon { background: #dbeafe; color: #2563eb; }
+    .role-volunteer .stat-icon { background: #ffedd5; color: #ea580c; }
+    .role-admin .stat-icon { background: #e0e7ff; color: #4f46e5; }
+
+    /* Food type pills */
+    .food-type-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      background: #f0fdfa;
+      color: #0f766e;
+      font-size: 0.78rem;
+      font-weight: 600;
+      padding: 0.25rem 0.6rem;
+      border-radius: 999px;
+      border: 1px solid #99f6e4;
+    }
+
+    /* Department chips on register */
+    .dept-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.5rem 0.9rem;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: white;
+      color: #475569;
+    }
+
+    .dept-chip:hover, .dept-chip.active {
+      border-color: #14b8a6;
+      background: #ecfdf5;
+      color: #0f766e;
+    }
+
+    .dept-chip.active { box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.2); }
+
+    /* Smooth page switch */
+    .page-view { display: none; animation: fadeIn 0.3s ease; }
+    .page-view.active { display: block; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Impact progress */
+    .impact-ring {
+      width: 90px;
+      height: 90px;
+      border-radius: 50%;
+      background: conic-gradient(#14b8a6 0% 72%, #e2e8f0 72% 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .impact-ring::before {
+      content: '';
+      position: absolute;
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      background: white;
+    }
+
+    .impact-ring span {
+      position: relative;
+      font-weight: 800;
+      font-size: 1.1rem;
+      color: #0f766e;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ==================== AUTH SECTION ==================== -->
+  <div id="authSection" class="auth-wrapper">
+    <!-- LOGIN -->
+    <div id="loginCard" class="auth-card">
+      <div class="auth-logo"><i class="bi bi-heart-pulse-fill"></i></div>
+      <h1 class="auth-title">RescueFlow AI</h1>
+      <p class="auth-subtitle">From surplus to shared meals — faster & safer</p>
+
+      <form id="loginForm" onsubmit="return handleLogin(event)">
+        <div class="mb-3">
+          <label class="form-label">Email</label>
+          <input type="email" class="form-control" id="loginEmail" placeholder="you@example.com" required />
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Password</label>
+          <input type="password" class="form-control" id="loginPassword" placeholder="••••••••" required />
+        </div>
+        <div class="mb-3 form-check">
+          <input type="checkbox" class="form-check-input" id="rememberMe" />
+          <label class="form-check-label" for="rememberMe" style="font-size:0.9rem">Remember me</label>
+        </div>
+        <button type="submit" class="btn btn-primary-custom">
+          <i class="bi bi-box-arrow-in-right me-2"></i>Sign In
+        </button>
+      </form>
+
+      <p class="text-center mt-3 mb-0" style="font-size:0.9rem;color:#64748b">
+        Don't have an account?
+        <a href="#" onclick="showSignup()" style="color:#0d9488;font-weight:600;text-decoration:none">Sign up</a>
+      </p>
+
+      <div class="demo-accounts">
+        <h6><i class="bi bi-lightning-charge-fill me-1"></i> Quick Demo Login</h6>
+        <button class="demo-btn" onclick="demoLogin('donor@rescueflow.demo','donor')">
+          <span>donor@rescueflow.demo</span>
+          <span class="role-badge">Donor</span>
+        </button>
+        <button class="demo-btn" onclick="demoLogin('ngo@rescueflow.demo','ngo')">
+          <span>ngo@rescueflow.demo</span>
+          <span class="role-badge">NGO / Recipient</span>
+        </button>
+        <button class="demo-btn" onclick="demoLogin('volunteer@rescueflow.demo','volunteer')">
+          <span>volunteer@rescueflow.demo</span>
+          <span class="role-badge">Volunteer</span>
+        </button>
+        <button class="demo-btn" onclick="demoLogin('admin@rescueflow.demo','admin')">
+          <span>admin@rescueflow.demo</span>
+          <span class="role-badge">Administrator</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- SIGNUP -->
+    <div id="signupCard" class="auth-card" style="display:none; max-width:480px;">
+      <div class="auth-logo"><i class="bi bi-person-plus-fill"></i></div>
+      <h1 class="auth-title">Create Account</h1>
+      <p class="auth-subtitle">Join the movement against food waste</p>
+
+      <form id="signupForm" onsubmit="return handleSignup(event)">
+        <div class="row g-2">
+          <div class="col-6">
+            <label class="form-label">Full Name</label>
+            <input type="text" class="form-control" id="signupName" required />
+          </div>
+          <div class="col-6">
+            <label class="form-label">Email</label>
+            <input type="email" class="form-control" id="signupEmail" required />
+          </div>
+        </div>
+        <div class="mt-2">
+          <label class="form-label">Password</label>
+          <input type="password" class="form-control" id="signupPassword" minlength="6" required />
+        </div>
+        <div class="mt-2">
+          <label class="form-label">I am a...</label>
+          <select class="form-select" id="signupRole" required>
+            <option value="">Select role</option>
+            <option value="donor">Food Donor (Restaurant / Supermarket / Storage / Bakery etc.)</option>
+            <option value="ngo">NGO / Orphanage / Community Center / Shelter</option>
+            <option value="volunteer">Volunteer (Pickup & Delivery)</option>
+          </select>
+        </div>
+        <div class="mt-2" id="orgNameGroup" style="display:none;">
+          <label class="form-label">Organization / Business Name</label>
+          <input type="text" class="form-control" id="signupOrg" />
+        </div>
+        <div class="mt-2">
+          <label class="form-label">Phone</label>
+          <input type="tel" class="form-control" id="signupPhone" placeholder="+91 98765 43210" />
+        </div>
+        <div class="mt-3">
+          <button type="submit" class="btn btn-primary-custom">
+            <i class="bi bi-check2-circle me-2"></i>Create Account
+          </button>
+        </div>
+      </form>
+
+      <p class="text-center mt-3 mb-0" style="font-size:0.9rem;color:#64748b">
+        Already have an account?
+        <a href="#" onclick="showLogin()" style="color:#0d9488;font-weight:600;text-decoration:none">Sign in</a>
+      </p>
+    </div>
+  </div>
+
+  <!-- ==================== APP SHELL ==================== -->
+  <div id="appShell" class="app-shell">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-brand">
+        <div class="logo-icon"><i class="bi bi-heart-pulse-fill"></i></div>
+        <div>
+          <h5>RescueFlow AI</h5>
+          <small>VisionQuad</small>
+        </div>
+      </div>
+
+      <nav class="nav-section" id="sidebarNav">
+        <!-- Filled by JS based on role -->
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-info">
+          <div class="user-avatar" id="userAvatar">U</div>
+          <div>
+            <div class="name" id="userName">User</div>
+            <div class="role" id="userRoleLabel">Role</div>
+          </div>
+        </div>
+        <button class="btn btn-sm w-100" style="background:rgba(255,255,255,0.12);color:white;border:none;border-radius:0.6rem;" onclick="logout()">
+          <i class="bi bi-box-arrow-right me-1"></i> Logout
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content" id="mainContent">
+      <!-- Pages injected by role -->
+    </main>
+  </div>
+
+  <!-- Mobile menu toggle -->
+  <button class="mobile-toggle" onclick="toggleSidebar()" aria-label="Menu">
+    <i class="bi bi-list"></i>
+  </button>
+
+  <!-- Toast container -->
+  <div class="toast-container position-fixed bottom-0 end-0 p-3"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // ==================== DATA & STATE ====================
+    const DEMO_USERS = {
+      'donor@rescueflow.demo': { password: 'demo123', role: 'donor', name: 'GreenLeaf Restaurant', org: 'GreenLeaf Restaurant' },
+      'ngo@rescueflow.demo': { password: 'demo123', role: 'ngo', name: 'Hope Foundation', org: 'Hope Foundation NGO' },
+      'volunteer@rescueflow.demo': { password: 'demo123', role: 'volunteer', name: 'Arjun Mehta', org: null },
+      'admin@rescueflow.demo': { password: 'demo123', role: 'admin', name: 'System Admin', org: 'RescueFlow HQ' }
+    };
+
+    let currentUser = null;
+    let donations = [
+      { id: 1, donor: 'GreenLeaf Restaurant', dept: 'Restaurant', food: 'Cooked Rice & Curry', qty: '12 kg', condition: 'Fresh (refrigerated)', expiry: '2026-11-22 21:00', urgency: 92, status: 'Available', location: 'MG Road, Bangalore', notes: 'Vegetarian, packed in containers' },
+      { id: 2, donor: 'FreshMart Supermarket', dept: 'Supermarket', food: 'Bread & Bakery Items', qty: '8 packs', condition: 'Best before today', expiry: '2026-11-22 18:00', urgency: 88, status: 'Matched', location: 'Indiranagar', notes: 'Assorted breads' },
+      { id: 3, donor: 'City Storage Hub', dept: 'Storage / Warehouse', food: 'Canned Goods & Dry Rations', qty: '25 boxes', condition: 'Near expiry (7 days)', expiry: '2026-11-29', urgency: 45, status: 'Available', location: 'Whitefield', notes: 'Mixed canned vegetables & dals' },
+      { id: 4, donor: 'Sunrise Bakery', dept: 'Bakery', food: 'Pastries & Cakes', qty: '15 pcs', condition: 'Same day', expiry: '2026-11-22 20:00', urgency: 85, status: 'Picked Up', location: 'Koramangala', notes: 'Sweet items' },
+      { id: 5, donor: 'Hotel Grand', dept: 'Hotel / Catering', food: 'Buffet Leftovers', qty: '18 kg', condition: 'Hot & ready', expiry: '2026-11-22 19:30', urgency: 95, status: 'Available', location: 'Cubbon Park area', notes: 'Non-veg & veg mixed — specify preference' },
+      { id: 6, donor: 'Campus Cafeteria', dept: 'Cafeteria / Institutional', food: 'Lunch leftovers', qty: '9 kg', condition: 'Cooling', expiry: '2026-11-22 17:00', urgency: 78, status: 'Completed', location: 'NCET Campus', notes: 'Student meals' }
+    ];
+
+    let pickups = [
+      { id: 101, donationId: 2, food: 'Bread & Bakery Items', from: 'FreshMart Supermarket', to: 'Hope Foundation', volunteer: null, slot: 'Today 5:00 PM', status: 'Pending' },
+      { id: 102, donationId: 4, food: 'Pastries & Cakes', from: 'Sunrise Bakery', to: 'Little Angels Orphanage', volunteer: 'Arjun Mehta', slot: 'Today 4:30 PM', status: 'Accepted' },
+      { id: 103, donationId: 6, food: 'Lunch leftovers', from: 'Campus Cafeteria', to: 'Community Kitchen', volunteer: 'Arjun Mehta', slot: 'Yesterday 2:00 PM', status: 'Completed' }
+    ];
+
+    const DEPARTMENTS = [
+      { id: 'restaurant', label: 'Restaurant', icon: 'bi-cup-hot' },
+      { id: 'supermarket', label: 'Supermarket / Grocery', icon: 'bi-shop' },
+      { id: 'storage', label: 'Storage / Warehouse', icon: 'bi-box-seam' },
+      { id: 'bakery', label: 'Bakery', icon: 'bi-cake2' },
+      { id: 'hotel', label: 'Hotel / Catering', icon: 'bi-building' },
+      { id: 'cafeteria', label: 'Cafeteria / Institutional', icon: 'bi-egg-fried' },
+      { id: 'farm', label: 'Farm / Produce', icon: 'bi-flower1' },
+      { id: 'other', label: 'Other', icon: 'bi-three-dots' }
+    ];
+
+    const RECIPIENT_TYPES = ['NGO', 'Orphanage', 'Community Center', 'Shelter', 'Old Age Home', 'Community Kitchen'];
+
+    // ==================== AUTH ====================
+    function showSignup() {
+      document.getElementById('loginCard').style.display = 'none';
+      document.getElementById('signupCard').style.display = 'block';
+    }
+
+    function showLogin() {
+      document.getElementById('signupCard').style.display = 'none';
+      document.getElementById('loginCard').style.display = 'block';
+    }
+
+    document.getElementById('signupRole').addEventListener('change', function() {
+      const orgGroup = document.getElementById('orgNameGroup');
+      orgGroup.style.display = (this.value === 'donor' || this.value === 'ngo') ? 'block' : 'none';
+    });
+
+    function handleLogin(e) {
+      e.preventDefault();
+      const email = document.getElementById('loginEmail').value.trim().toLowerCase();
+      const pass = document.getElementById('loginPassword').value;
+
+      const user = DEMO_USERS[email];
+      if (user && user.password === pass) {
+        currentUser = { email, ...user };
+        enterApp();
+        return false;
+      }
+      // Allow any email for demo if they typed correctly formatted
+      showToast('Invalid credentials. Use the demo buttons or password: demo123', 'danger');
+      return false;
+    }
+
+    function demoLogin(email, role) {
+      const user = DEMO_USERS[email];
+      currentUser = { email, ...user };
+      enterApp();
+    }
+
+    function handleSignup(e) {
+      e.preventDefault();
+      const name = document.getElementById('signupName').value.trim();
+      const email = document.getElementById('signupEmail').value.trim().toLowerCase();
+      const role = document.getElementById('signupRole').value;
+      const org = document.getElementById('signupOrg').value.trim();
+
+      if (!role) {
+        showToast('Please select a role', 'warning');
+        return false;
+      }
+
+      currentUser = {
+        email,
+        name: name || email.split('@')[0],
+        role,
+        org: org || name,
+        password: 'new'
+      };
+      showToast('Account created successfully! Welcome aboard.', 'success');
+      enterApp();
+      return false;
+    }
+
+    function logout() {
+      currentUser = null;
+      document.getElementById('appShell').style.display = 'none';
+      document.getElementById('authSection').style.display = 'flex';
+      document.getElementById('loginForm').reset();
+      showLogin();
+    }
+
+    function enterApp() {
+      document.getElementById('authSection').style.display = 'none';
+      document.getElementById('appShell').style.display = 'block';
+      document.getElementById('userAvatar').textContent = currentUser.name.charAt(0).toUpperCase();
+      document.getElementById('userName').textContent = currentUser.name;
+      document.getElementById('userRoleLabel').textContent = roleLabel(currentUser.role);
+      buildSidebar();
+      renderDashboard();
+    }
+
+    function roleLabel(r) {
+      return { donor: 'Food Donor', ngo: 'NGO / Recipient', volunteer: 'Volunteer', admin: 'Administrator' }[r] || r;
+    }
+
+    // ==================== SIDEBAR ====================
+    function buildSidebar() {
+      const nav = document.getElementById('sidebarNav');
+      const role = currentUser.role;
+      let links = [];
+
+      if (role === 'donor') {
+        links = [
+          { id: 'dashboard', icon: 'bi-speedometer2', label: 'Dashboard' },
+          { id: 'register', icon: 'bi-plus-circle', label: 'Register Surplus' },
+          { id: 'myDonations', icon: 'bi-box-seam', label: 'My Donations' },
+          { id: 'impact', icon: 'bi-graph-up-arrow', label: 'My Impact' }
+        ];
+      } else if (role === 'ngo') {
+        links = [
+          { id: 'dashboard', icon: 'bi-speedometer2', label: 'Dashboard' },
+          { id: 'available', icon: 'bi-search', label: 'Available Food' },
+          { id: 'requests', icon: 'bi-hand-thumbs-up', label: 'My Requests' },
+          { id: 'impact', icon: 'bi-graph-up-arrow', label: 'Impact' }
+        ];
+      } else if (role === 'volunteer') {
+        links = [
+          { id: 'dashboard', icon: 'bi-speedometer2', label: 'Dashboard' },
+          { id: 'pickups', icon: 'bi-truck', label: 'Pickup Tasks' },
+          { id: 'myTasks', icon: 'bi-clipboard-check', label: 'My Tasks' },
+          { id: 'impact', icon: 'bi-graph-up-arrow', label: 'My Contribution' }
+        ];
+      } else if (role === 'admin') {
+        links = [
+          { id: 'dashboard', icon: 'bi-speedometer2', label: 'Overview' },
+          { id: 'allDonations', icon: 'bi-box-seam', label: 'All Donations' },
+          { id: 'users', icon: 'bi-people', label: 'Users & Roles' },
+          { id: 'matching', icon: 'bi-diagram-3', label: 'Matching Engine' },
+          { id: 'impact', icon: 'bi-bar-chart-line', label: 'Impact Metrics' }
+        ];
+      }
+
+      nav.innerHTML = links.map((l, i) => `
+        <a class="nav-link-custom ${i === 0 ? 'active' : ''}" data-page="${l.id}" onclick="navigateTo('${l.id}', this)">
+          <i class="bi ${l.icon}"></i> ${l.label}
+        </a>
+      `).join('');
+    }
+
+    function navigateTo(pageId, el) {
+      document.querySelectorAll('.nav-link-custom').forEach(a => a.classList.remove('active'));
+      if (el) el.classList.add('active');
+      // close mobile sidebar
+      document.getElementById('sidebar').classList.remove('open');
+
+      const main = document.getElementById('mainContent');
+      if (pageId === 'dashboard') renderDashboard();
+      else if (pageId === 'register') renderRegister();
+      else if (pageId === 'myDonations') renderMyDonations();
+      else if (pageId === 'available') renderAvailableFood();
+      else if (pageId === 'requests') renderNGORequests();
+      else if (pageId === 'pickups') renderPickupTasks();
+      else if (pageId === 'myTasks') renderMyTasks();
+      else if (pageId === 'allDonations') renderAllDonations();
+      else if (pageId === 'users') renderUsers();
+      else if (pageId === 'matching') renderMatching();
+      else if (pageId === 'impact') renderImpact();
+    }
+
+    function toggleSidebar() {
+      document.getElementById('sidebar').classList.toggle('open');
+    }
+
+    // ==================== RENDER HELPERS ====================
+    function urgencyBadge(score) {
+      if (score >= 85) return `<span class="badge-status badge-urgent">Urgent ${score}</span>`;
+      if (score >= 60) return `<span class="badge-status badge-high">High ${score}</span>`;
+      if (score >= 40) return `<span class="badge-status badge-medium">Medium ${score}</span>`;
+      return `<span class="badge-status badge-low">Low ${score}</span>`;
+    }
+
+    function statusBadge(s) {
+      const map = {
+        'Available': 'badge-pending',
+        'Matched': 'badge-matched',
+        'Picked Up': 'badge-picked',
+        'Completed': 'badge-completed',
+        'Pending': 'badge-pending',
+        'Accepted': 'badge-matched'
+      };
+      return `<span class="badge-status ${map[s] || 'badge-pending'}">${s}</span>`;
+    }
+
+    function showToast(msg, type = 'success') {
+      const container = document.querySelector('.toast-container');
+      const id = 't' + Date.now();
+      const bg = type === 'success' ? 'bg-success' : type === 'danger' ? 'bg-danger' : 'bg-warning text-dark';
+      container.insertAdjacentHTML('beforeend', `
+        <div id="${id}" class="toast align-items-center text-white ${bg} border-0" role="alert">
+          <div class="d-flex">
+            <div class="toast-body">${msg}</div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+          </div>
+        </div>
+      `);
+      const t = new bootstrap.Toast(document.getElementById(id), { delay: 3200 });
+      t.show();
+    }
+
+    // ==================== ROLE DASHBOARDS ====================
+    function renderDashboard() {
+      const role = currentUser.role;
+      const main = document.getElementById('mainContent');
+
+      if (role === 'donor') {
+        const mine = donations.filter(d => d.donor.includes('GreenLeaf') || d.donor === currentUser.org || d.donor === currentUser.name);
+        main.innerHTML = `
+          <div class="page-header">
+            <div>
+              <h2>Donor Dashboard</h2>
+              <p>Welcome back, ${currentUser.name}. Track your surplus food & impact.</p>
+            </div>
+            <button class="btn btn-primary-custom" style="width:auto;" onclick="navigateTo('register')">
+              <i class="bi bi-plus-lg me-1"></i> Register Surplus
+            </button>
+          </div>
+          <div class="row g-3 mb-4">
+            <div class="col-6 col-md-3">
+              <div class="stat-card role-donor">
+                <div class="stat-icon"><i class="bi bi-box-seam"></i></div>
+                <div class="stat-value">${mine.length || 3}</div>
+                <div class="stat-label">Active Listings</div>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="stat-card role-donor">
+                <div class="stat-icon"><i class="bi bi-check2-circle"></i></div>
+                <div class="stat-value">12</div>
+                <div class="stat-label">Completed</div>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="stat-card role-donor">
+                <div class="stat-icon"><i class="bi bi-people"></i></div>
+                <div class="stat-value">186</div>
+                <div class="stat-label">Meals Shared</div>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="stat-card role-donor">
+                <div class="stat-icon"><i class="bi bi-leaf"></i></div>
+                <div class="stat-value">42 kg</div>
+                <div class="stat-label">Waste Prevented</div>
+              </div>
+            </div>
+          </div>
+          <div class="card-custom">
+            <div class="card-header">Recent Surplus Listings</div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-custom mb-0">
+                  <thead><tr><th>Food</th><th>Dept</th><th>Qty</th><th>Urgency</th><th>Status</th><th></th></tr></thead>
+                  <tbody>
+                    ${donations.slice(0,4).map(d => `
+                      <tr>
+                        <td><strong>${d.food}</strong><br><small class="text-muted">${d.condition}</small></td>
+                        <td><span class="food-type-pill">${d.dept}</span></td>
+                        <td>${d.qty}</td>
+                        <td>${urgencyBadge(d.urgency)}</td>
+                        <td>${statusBadge(d.status)}</td>
+                        <td><button class="btn btn-sm btn-outline-secondary" onclick="showToast('View details coming soon')">View</button></td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      else if (role === 'ngo') {
+        main.innerHTML = `
+          <div class="page-header">
+            <div>
+              <h2>Recipient Dashboard</h2>
+              <p>Hello ${currentUser.name}. Find surplus food matched for your needs.</p>
+            </div>
+            <button class="btn btn-primary-custom" style="width:auto;" onclick="navigateTo('available')">
+              <i class="bi bi-search me-1"></i> Browse Available
+            </button>
+          </div>
+          <div class="row g-3 mb-4">
+            <div class="col-6 col-md-3">
+              <div class="stat-card role-ngo">
+                <div class="stat-icon"><i class="bi bi-search"></i></div>
+                <div class="stat-value">${donations.filter(d=>d.status==='Available').length}</div>
+                <div class="stat-label">Available Now</div>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="stat-card role-ngo">
+                <div class="stat-icon"><i class="bi bi-hand-thumbs-up"></i></div>
+                <div class="stat-value">5</div>
+                <div class="stat-label">Active Requests</div>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="stat-card role-ngo">
+                <div class="stat-icon"><i class="bi bi-bag-check"></i></div>
+                <div class="stat-value">28</div>
+                <div class="stat-label">Received</div>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="stat-card role-ngo">
+                <div class="stat-icon"><i class="bi bi-heart"></i></div>
+                <div class="stat-value">320+</div>
+                <div class="stat-label">Meals Served</div>
+              </div>
+            </div>
+          </div>
+          <div class="row g-3">
+            <div class="col-lg-7">
+              <div class="card-custom h-100">
+                <div class="card-header">High Priority Matches</div>
+                <div class="card-body p-0">
+                  <div class="table-responsive">
+                    <table class="table table-custom mb-0">
+                      <thead><tr><th>Food</th><th>From</th><th>Urgency</th><th></th></tr></thead>
+                      <tbody>
+                        ${donations.filter(d => d.status === 'Available').slice(0,3).map(d => `
+                          <tr>
+                            <td><strong>${d.food}</strong><br><small>${d.qty} · ${d.dept}</small></td>
+                            <td>${d.donor}<br><small class="text-muted">${d.location}</small></td>
+                            <td>${urgencyBadge(d.urgency)}</td>
+                            <td><button class="btn btn-sm btn-primary-custom" style="width:auto;padding:0.35rem 0.8rem;" onclick="requestFood(${d.id})">Request</button></td>
+                          </tr>
+                        `).join('')}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-lg-5">
+              <div class="card-custom h-100">
+                <div class="card-header">Your Preferences</div>
+                <div class="card-body">
+                  <p class="mb-2" style="font-size:0.9rem;color:#64748b">We match based on your acceptance rules:</p>
+                  <div class="d-flex flex-wrap gap-2 mb-3">
+                    <span class="food-type-pill">Vegetarian OK</span>
+                    <span class="food-type-pill">Cooked food</span>
+                    <span class="food-type-pill">Dry rations</span>
+                    <span class="food-type-pill">Near-expiry storage</span>
+                  </div>
+                  <button class="btn btn-outline-secondary btn-sm" onclick="showToast('Preference editor coming in next version')">Edit Preferences</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      else if (role === 'volunteer') {
+        main.innerHTML = `
+          <div class="page-header">
+            <div>
+              <h2>Volunteer Dashboard</h2>
+              <p>Hi ${currentUser.name}. Help move surplus food to those who need it.</p>
+            </div>
+            <button class="btn btn-primary-custom" style="width:auto;" onclick="navigateTo('pickups')">
+              <i class="bi bi-truck me-1"></i> View Tasks
+            </button>
+          </div>
+          <div class="row g-3 mb-4">
+            <div class="col-6 col-md-3">
+              <div class="stat-card role-volunteer">
+                <div class="stat-icon"><i class="bi bi-list-task"></i></div>
+                <div class="stat-value">${pickups.filter(p=>p.status==='Pending').length}</div>
+                <div class="stat-label">Open Tasks</div>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="stat-card role-volunteer">
+                <div class="stat-icon"><i class="bi bi-truck"></i></div>
+                <div class="stat-value">${pickups.filter(p=>p.volunteer===currentUser.name).length}</div>
+                <div class="stat-label">My Active</div>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="stat-card role-volunteer">
+                <div class="stat-icon"><i class="bi bi-check2-all"></i></div>
+                <div class="stat-value">14</div>
+                <div class="stat-label">Completed</div>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="stat-card role-volunteer">
+                <div class="stat-icon"><i class="bi bi-star"></i></div>
+                <div class="stat-value">4.9</div>
+                <div class="stat-label">Rating</div>
+              </div>
+            </div>
+          </div>
+          <div class="card-custom">
+            <div class="card-header">Priority Pickup Tasks</div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-custom mb-0">
+                  <thead><tr><th>Food</th><th>From → To</th><th>Slot</th><th>Status</th><th></th></tr></thead>
+                  <tbody>
+                    ${pickups.filter(p => p.status !== 'Completed').map(p => `
+                      <tr>
+                        <td><strong>${p.food}</strong></td>
+                        <td>${p.from}<br><small class="text-muted">→ ${p.to}</small></td>
+                        <td>${p.slot}</td>
+                        <td>${statusBadge(p.status)}</td>
+                        <td>
+                          ${p.status === 'Pending' ? `<button class="btn btn-sm btn-primary-custom" style="width:auto;padding:0.3rem 0.7rem;" onclick="acceptPickup(${p.id})">Accept</button>` : 
+                            p.volunteer === currentUser.name ? `<button class="btn btn-sm btn-outline-success" onclick="completePickup(${p.id})">Mark Done</button>` : '—'}
+                        </td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      else if (role === 'admin') {
+        main.innerHTML = `
+          <div class="page-header">
+            <div>
+              <h2>Admin Overview</h2>
+              <p>System health, redistribution metrics & AI matching control.</p>
+            </div>
+          </div>
+          <div class="row g-3 mb-4">
+            <div class="col-6 col-md-3">
+              <div class="stat-card role-admin">
+                <div class="stat-icon"><i class="bi bi-box-seam"></i></div>
+                <div class="stat-value">${donations.length}</div>
+                <div class="stat-label">Total Listings</div>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="stat-card role-admin">
+                <div class="stat-icon"><i class="bi bi-people"></i></div>
+                <div class="stat-value">48</div>
+                <div class="stat-label">Active Users</div>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="stat-card role-admin">
+                <div class="stat-icon"><i class="bi bi-truck"></i></div>
+                <div class="stat-value">${pickups.length}</div>
+                <div class="stat-label">Pickups</div>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="stat-card role-admin">
+                <div class="stat-icon"><i class="bi bi-leaf"></i></div>
+                <div class="stat-value">1.2 t</div>
+                <div class="stat-label">Food Saved</div>
+              </div>
+            </div>
+          </div>
+          <div class="row g-3">
+            <div class="col-lg-8">
+              <div class="card-custom">
+                <div class="card-header">Live Donation Feed</div>
+                <div class="card-body p-0">
+                  <div class="table-responsive">
+                    <table class="table table-custom mb-0">
+                      <thead><tr><th>ID</th><th>Food</th><th>Donor / Dept</th><th>Urgency</th><th>Status</th></tr></thead>
+                      <tbody>
+                        ${donations.map(d => `
+                          <tr>
+                            <td>#${d.id}</td>
+                            <td><strong>${d.food}</strong></td>
+                            <td>${d.donor}<br><span class="food-type-pill">${d.dept}</span></td>
+                            <td>${urgencyBadge(d.urgency)}</td>
+                            <td>${statusBadge(d.status)}</td>
+                          </tr>
+                        `).join('')}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-lg-4">
+              <div class="card-custom mb-3">
+                <div class="card-header">AI Urgency Engine</div>
+                <div class="card-body">
+                  <p style="font-size:0.9rem;color:#64748b">Rule-based scoring considers:</p>
+                  <ul style="font-size:0.88rem;padding-left:1.1rem;">
+                    <li>Time remaining to expiry</li>
+                    <li>Quantity & perishability</li>
+                    <li>Storage condition</li>
+                    <li>Distance to recipients</li>
+                  </ul>
+                  <div class="alert alert-success py-2 mb-0" style="font-size:0.85rem;">
+                    <i class="bi bi-shield-check me-1"></i> Human approval always required
+                  </div>
+                </div>
+              </div>
+              <div class="card-custom">
+                <div class="card-header">Quick Actions</div>
+                <div class="card-body d-grid gap-2">
+                  <button class="btn btn-outline-primary btn-sm" onclick="navigateTo('matching')">Run Matching Engine</button>
+                  <button class="btn btn-outline-secondary btn-sm" onclick="navigateTo('users')">Manage Users</button>
+                  <button class="btn btn-outline-secondary btn-sm" onclick="navigateTo('impact')">Full Impact Report</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    // ==================== DONOR: REGISTER SURPLUS ====================
+    function renderRegister() {
+      const main = document.getElementById('mainContent');
+      main.innerHTML = `
+        <div class="page-header">
+          <div>
+            <h2>Register Surplus Food</h2>
+            <p>List food that would otherwise go to waste. Storage & near-expiry items are welcome.</p>
+          </div>
+        </div>
+        <div class="card-custom">
+          <div class="card-body">
+            <form id="registerForm" onsubmit="return submitDonation(event)">
+              <div class="form-section-title"><i class="bi bi-building"></i> Source Department / Type</div>
+              <div class="d-flex flex-wrap gap-2 mb-4" id="deptChips">
+                ${DEPARTMENTS.map(d => `
+                  <div class="dept-chip" data-dept="${d.label}" onclick="selectDept(this)">
+                    <i class="bi ${d.icon}"></i> ${d.label}
+                  </div>
+                `).join('')}
+              </div>
+              <input type="hidden" id="regDept" required />
+
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label">Food Item / Description *</label>
+                  <input type="text" class="form-control" id="regFood" placeholder="e.g. Cooked meals, Bread loaves, Canned dals" required />
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label">Quantity *</label>
+                  <input type="text" class="form-control" id="regQty" placeholder="e.g. 10 kg / 20 packs" required />
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label">Storage Condition</label>
+                  <select class="form-select" id="regCondition">
+                    <option>Fresh (refrigerated)</option>
+                    <option>Hot & ready</option>
+                    <option>Room temperature</option>
+                    <option>Near expiry (storage)</option>
+                    <option>Frozen</option>
+                    <option>Dry / Non-perishable</option>
+                  </select>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">Expiry / Best Before *</label>
+                  <input type="datetime-local" class="form-control" id="regExpiry" required />
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">Pickup Location *</label>
+                  <input type="text" class="form-control" id="regLocation" placeholder="Area, City" required />
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">Preferred Pickup Window</label>
+                  <input type="text" class="form-control" id="regWindow" placeholder="e.g. Today 4–7 PM" />
+                </div>
+                <div class="col-12">
+                  <label class="form-label">Notes (allergens, packaging, dietary info)</label>
+                  <textarea class="form-control" id="regNotes" rows="2" placeholder="Vegetarian, contains nuts, packed in sealed containers..."></textarea>
+                </div>
+              </div>
+
+              <div class="mt-4 d-flex gap-2 flex-wrap">
+                <button type="submit" class="btn btn-primary-custom" style="width:auto;">
+                  <i class="bi bi-check2-circle me-1"></i> Submit for Matching
+                </button>
+                <button type="button" class="btn btn-outline-secondary" onclick="navigateTo('dashboard')">Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      `;
+    }
+
+    function selectDept(el) {
+      document.querySelectorAll('.dept-chip').forEach(c => c.classList.remove('active'));
+      el.classList.add('active');
+      document.getElementById('regDept').value = el.dataset.dept;
+    }
+
+    function submitDonation(e) {
+      e.preventDefault();
+      const dept = document.getElementById('regDept').value;
+      if (!dept) {
+        showToast('Please select a department / source type', 'warning');
+        return false;
+      }
+      const food = document.getElementById('regFood').value;
+      const qty = document.getElementById('regQty').value;
+      const condition = document.getElementById('regCondition').value;
+      const expiry = document.getElementById('regExpiry').value;
+      const location = document.getElementById('regLocation').value;
+      const notes = document.getElementById('regNotes').value;
+
+      // Simple urgency simulation
+      const hoursLeft = Math.max(1, (new Date(expiry) - new Date()) / 3600000);
+      let urgency = Math.min(99, Math.round(100 - hoursLeft * 2));
+      if (condition.includes('Near expiry') || condition.includes('Hot')) urgency = Math.min(99, urgency + 15);
+
+      const newId = donations.length + 1;
+      donations.unshift({
+        id: newId,
+        donor: currentUser.org || currentUser.name,
+        dept,
+        food,
+        qty,
+        condition,
+        expiry: expiry.replace('T', ' '),
+        urgency,
+        status: 'Available',
+        location,
+        notes
+      });
+
+      showToast(`Surplus registered! AI urgency score: ${urgency}. Awaiting match.`, 'success');
+      navigateTo('myDonations');
+      return false;
+    }
+
+    // ==================== DONOR: MY DONATIONS ====================
+    function renderMyDonations() {
+      const main = document.getElementById('mainContent');
+      main.innerHTML = `
+        <div class="page-header">
+          <div>
+            <h2>My Donations</h2>
+            <p>Track status of everything you have listed.</p>
+          </div>
+          <button class="btn btn-primary-custom" style="width:auto;" onclick="navigateTo('register')">
+            <i class="bi bi-plus-lg me-1"></i> New Listing
+          </button>
+        </div>
+        <div class="card-custom">
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table table-custom mb-0">
+                <thead>
+                  <tr><th>Food</th><th>Department</th><th>Qty</th><th>Expiry</th><th>Urgency</th><th>Status</th></tr>
+                </thead>
+                <tbody>
+                  ${donations.map(d => `
+                    <tr>
+                      <td><strong>${d.food}</strong><br><small class="text-muted">${d.condition}</small></td>
+                      <td><span class="food-type-pill">${d.dept}</span></td>
+                      <td>${d.qty}</td>
+                      <td style="font-size:0.85rem;">${d.expiry}</td>
+                      <td>${urgencyBadge(d.urgency)}</td>
+                      <td>${statusBadge(d.status)}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // ==================== NGO: AVAILABLE FOOD ====================
+    function renderAvailableFood() {
+      const available = donations.filter(d => d.status === 'Available' || d.status === 'Matched');
+      const main = document.getElementById('mainContent');
+      main.innerHTML = `
+        <div class="page-header">
+          <div>
+            <h2>Available Surplus Food</h2>
+            <p>Including near-expiry storage items, restaurant surplus, bakery & more.</p>
+          </div>
+        </div>
+        <div class="row g-3">
+          ${available.length ? available.map(d => `
+            <div class="col-md-6 col-xl-4">
+              <div class="card-custom h-100">
+                <div class="card-body">
+                  <div class="d-flex justify-content-between align-items-start mb-2">
+                    <span class="food-type-pill">${d.dept}</span>
+                    ${urgencyBadge(d.urgency)}
+                  </div>
+                  <h5 style="font-weight:700;color:#0f766e;font-size:1.1rem;">${d.food}</h5>
+                  <p class="mb-1" style="font-size:0.9rem;"><i class="bi bi-box me-1"></i> ${d.qty} · ${d.condition}</p>
+                  <p class="mb-1" style="font-size:0.9rem;"><i class="bi bi-geo-alt me-1"></i> ${d.location}</p>
+                  <p class="mb-2" style="font-size:0.85rem;color:#64748b;"><i class="bi bi-clock me-1"></i> Expiry: ${d.expiry}</p>
+                  ${d.notes ? `<p class="mb-3" style="font-size:0.82rem;color:#94a3b8;">${d.notes}</p>` : ''}
+                  <button class="btn btn-primary-custom btn-sm" style="width:100%;" onclick="requestFood(${d.id})">
+                    <i class="bi bi-hand-thumbs-up me-1"></i> Request this food
+                  </button>
+                </div>
+              </div>
+            </div>
+          `).join('') : `<div class="col-12"><div class="empty-state"><i class="bi bi-inbox"></i><p>No available listings right now. Check back soon!</p></div></div>`}
+        </div>
+      `;
+    }
+
+    function requestFood(id) {
+      const d = donations.find(x => x.id === id);
+      if (d) {
+        d.status = 'Matched';
+        showToast(`Request sent for "${d.food}". Volunteer coordination will follow.`, 'success');
+        renderAvailableFood();
+      }
+    }
+
+    function renderNGORequests() {
+      const matched = donations.filter(d => d.status === 'Matched' || d.status === 'Picked Up' || d.status === 'Completed');
+      const main = document.getElementById('mainContent');
+      main.innerHTML = `
+        <div class="page-header">
+          <div><h2>My Requests</h2><p>Food you have requested or received.</p></div>
+        </div>
+        <div class="card-custom">
+          <div class="card-body p-0">
+            <table class="table table-custom mb-0">
+              <thead><tr><th>Food</th><th>From</th><th>Status</th><th>Urgency</th></tr></thead>
+              <tbody>
+                ${matched.map(d => `
+                  <tr>
+                    <td><strong>${d.food}</strong><br><small>${d.qty}</small></td>
+                    <td>${d.donor}</td>
+                    <td>${statusBadge(d.status)}</td>
+                    <td>${urgencyBadge(d.urgency)}</td>
+                  </tr>
+                `).join('') || '<tr><td colspan="4" class="text-center text-muted py-4">No requests yet</td></tr>'}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    // ==================== VOLUNTEER ====================
+    function renderPickupTasks() {
+      const main = document.getElementById('mainContent');
+      main.innerHTML = `
+        <div class="page-header">
+          <div><h2>Open Pickup Tasks</h2><p>Accept tasks based on urgency and your availability.</p></div>
+        </div>
+        <div class="card-custom">
+          <div class="card-body p-0">
+            <table class="table table-custom mb-0">
+              <thead><tr><th>Food</th><th>Route</th><th>Time Slot</th><th>Status</th><th>Action</th></tr></thead>
+              <tbody>
+                ${pickups.map(p => `
+                  <tr>
+                    <td><strong>${p.food}</strong></td>
+                    <td>${p.from} → ${p.to}</td>
+                    <td>${p.slot}</td>
+                    <td>${statusBadge(p.status)}</td>
+                    <td>
+                      ${p.status === 'Pending' 
+                        ? `<button class="btn btn-sm btn-primary-custom" style="width:auto;padding:0.3rem 0.75rem;" onclick="acceptPickup(${p.id})">Accept</button>`
+                        : p.status === 'Accepted' && p.volunteer === currentUser.name
+                          ? `<button class="btn btn-sm btn-success" onclick="completePickup(${p.id})">Complete</button>`
+                          : '—'}
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    function acceptPickup(id) {
+      const p = pickups.find(x => x.id === id);
+      if (p) {
+        p.status = 'Accepted';
+        p.volunteer = currentUser.name;
+        showToast('Task accepted! Please collect within the time slot.', 'success');
+        renderPickupTasks();
+      }
+    }
+
+    function completePickup(id) {
+      const p = pickups.find(x => x.id === id);
+      if (p) {
+        p.status = 'Completed';
+        const d = donations.find(x => x.id === p.donationId);
+        if (d) d.status = 'Completed';
+        showToast('Pickup marked completed. Thank you for your service!', 'success');
+        renderPickupTasks();
+      }
+    }
+
+    function renderMyTasks() {
+      const mine = pickups.filter(p => p.volunteer === currentUser.name);
+      const main = document.getElementById('mainContent');
+      main.innerHTML = `
+        <div class="page-header"><div><h2>My Tasks</h2><p>Tasks you have accepted or completed.</p></div></div>
+        <div class="card-custom">
+          <div class="card-body p-0">
+            <table class="table table-custom mb-0">
+              <thead><tr><th>Food</th><th>Route</th><th>Slot</th><th>Status</th></tr></thead>
+              <tbody>
+                ${mine.length ? mine.map(p => `
+                  <tr>
+                    <td>${p.food}</td>
+                    <td>${p.from} → ${p.to}</td>
+                    <td>${p.slot}</td>
+                    <td>${statusBadge(p.status)}</td>
+                  </tr>
+                `).join('') : '<tr><td colspan="4" class="text-center text-muted py-4">No tasks yet. Accept one from Pickup Tasks!</td></tr>'}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    // ==================== ADMIN PAGES ====================
+    function renderAllDonations() {
+      const main = document.getElementById('mainContent');
+      main.innerHTML = `
+        <div class="page-header"><div><h2>All Donations</h2><p>Full system view of surplus food listings.</p></div></div>
+        <div class="card-custom">
+          <div class="card-body p-0">
+            <table class="table table-custom mb-0">
+              <thead><tr><th>ID</th><th>Food</th><th>Donor</th><th>Dept</th><th>Qty</th><th>Urgency</th><th>Status</th></tr></thead>
+              <tbody>
+                ${donations.map(d => `
+                  <tr>
+                    <td>#${d.id}</td>
+                    <td><strong>${d.food}</strong></td>
+                    <td>${d.donor}</td>
+                    <td><span class="food-type-pill">${d.dept}</span></td>
+                    <td>${d.qty}</td>
+                    <td>${urgencyBadge(d.urgency)}</td>
+                    <td>${statusBadge(d.status)}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderUsers() {
+      const main = document.getElementById('mainContent');
+      main.innerHTML = `
+        <div class="page-header"><div><h2>Users & Roles</h2><p>Manage donors, NGOs, volunteers and admins.</p></div></div>
+        <div class="card-custom">
+          <div class="card-body p-0">
+            <table class="table table-custom mb-0">
+              <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th></tr></thead>
+              <tbody>
+                <tr><td>GreenLeaf Restaurant</td><td>donor@rescueflow.demo</td><td><span class="badge-status badge-completed">Donor</span></td><td>Active</td></tr>
+                <tr><td>Hope Foundation</td><td>ngo@rescueflow.demo</td><td><span class="badge-status badge-matched">NGO</span></td><td>Active</td></tr>
+                <tr><td>Arjun Mehta</td><td>volunteer@rescueflow.demo</td><td><span class="badge-status badge-high">Volunteer</span></td><td>Active</td></tr>
+                <tr><td>System Admin</td><td>admin@rescueflow.demo</td><td><span class="badge-status badge-urgent">Admin</span></td><td>Active</td></tr>
+                <tr><td>Little Angels Orphanage</td><td>orphanage@hope.org</td><td><span class="badge-status badge-matched">Orphanage</span></td><td>Active</td></tr>
+                <tr><td>FreshMart Storage</td><td>storage@freshmart.in</td><td><span class="badge-status badge-completed">Storage</span></td><td>Active</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderMatching() {
+      const main = document.getElementById('mainContent');
+      main.innerHTML = `
+        <div class="page-header">
+          <div><h2>Intelligent Matching Engine</h2><p>Explainable AI prioritization with human approval.</p></div>
+          <button class="btn btn-primary-custom" style="width:auto;" onclick="showToast('Matching cycle completed. 2 new suggestions generated.','success')">
+            <i class="bi bi-lightning me-1"></i> Run Matching
+          </button>
+        </div>
+        <div class="row g-3">
+          <div class="col-lg-8">
+            <div class="card-custom">
+              <div class="card-header">Suggested Matches (awaiting approval)</div>
+              <div class="card-body p-0">
+                <table class="table table-custom mb-0">
+                  <thead><tr><th>Food</th><th>Donor</th><th>Suggested Recipient</th><th>Score</th><th>Action</th></tr></thead>
+                  <tbody>
+                    <tr>
+                      <td>Cooked Rice & Curry</td>
+                      <td>GreenLeaf Restaurant</td>
+                      <td>Hope Foundation (NGO)</td>
+                      <td>${urgencyBadge(92)}</td>
+                      <td>
+                        <button class="btn btn-sm btn-success me-1" onclick="showToast('Match approved & volunteer notified','success')">Approve</button>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="showToast('Match rejected','warning')">Reject</button>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>Canned Goods & Dry Rations</td>
+                      <td>City Storage Hub</td>
+                      <td>Little Angels Orphanage</td>
+                      <td>${urgencyBadge(45)}</td>
+                      <td>
+                        <button class="btn btn-sm btn-success me-1" onclick="showToast('Match approved','success')">Approve</button>
+                        <button class="btn btn-sm btn-outline-secondary">Reject</button>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>Buffet Leftovers</td>
+                      <td>Hotel Grand</td>
+                      <td>Community Kitchen</td>
+                      <td>${urgencyBadge(95)}</td>
+                      <td>
+                        <button class="btn btn-sm btn-success me-1" onclick="showToast('Match approved','success')">Approve</button>
+                        <button class="btn btn-sm btn-outline-secondary">Reject</button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-4">
+            <div class="card-custom">
+              <div class="card-header">How Scoring Works</div>
+              <div class="card-body" style="font-size:0.9rem;">
+                <p><strong>Urgency Score</strong> = f(time left, quantity, condition, distance)</p>
+                <ul class="mb-3">
+                  <li>Expiry &lt; 6h → +40</li>
+                  <li>Hot / ready food → +20</li>
+                  <li>Near-expiry storage → +15</li>
+                  <li>High quantity → +10</li>
+                </ul>
+                <div class="alert alert-info py-2 mb-0" style="font-size:0.85rem;">
+                  <i class="bi bi-info-circle me-1"></i> USP: Explainable AI + mandatory human approval for safety.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // ==================== IMPACT (shared) ====================
+    function renderImpact() {
+      const role = currentUser.role;
+      const main = document.getElementById('mainContent');
+      main.innerHTML = `
+        <div class="page-header">
+          <div>
+            <h2>${role === 'admin' ? 'System Impact Metrics' : 'Your Impact'}</h2>
+            <p>Measurable social & environmental difference made through RescueFlow.</p>
+          </div>
+        </div>
+        <div class="row g-3 mb-4">
+          <div class="col-md-3">
+            <div class="stat-card">
+              <div class="stat-icon" style="background:#ccfbf1;color:#0d9488;"><i class="bi bi-egg-fried"></i></div>
+              <div class="stat-value">${role === 'admin' ? '2,480' : '186'}</div>
+              <div class="stat-label">Meals Redistributed</div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="stat-card">
+              <div class="stat-icon" style="background:#d1fae5;color:#059669;"><i class="bi bi-trash"></i></div>
+              <div class="stat-value">${role === 'admin' ? '1.24 t' : '42 kg'}</div>
+              <div class="stat-label">Food Waste Prevented</div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="stat-card">
+              <div class="stat-icon" style="background:#e0e7ff;color:#4f46e5;"><i class="bi bi-cloud"></i></div>
+              <div class="stat-value">${role === 'admin' ? '3.1 t' : '98 kg'}</div>
+              <div class="stat-label">CO₂e Avoided</div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="stat-card">
+              <div class="stat-icon" style="background:#ffedd5;color:#ea580c;"><i class="bi bi-people"></i></div>
+              <div class="stat-value">${role === 'admin' ? '18' : '6'}</div>
+              <div class="stat-label">Partner Organizations</div>
+            </div>
+          </div>
+        </div>
+        <div class="row g-3">
+          <div class="col-lg-6">
+            <div class="card-custom">
+              <div class="card-header">Departments Contributing</div>
+              <div class="card-body">
+                <div class="d-flex flex-wrap gap-2">
+                  ${DEPARTMENTS.map(d => `<span class="food-type-pill"><i class="bi ${d.icon}"></i> ${d.label}</span>`).join('')}
+                </div>
+                <p class="mt-3 mb-0" style="font-size:0.88rem;color:#64748b;">
+                  Includes restaurants, supermarkets, storage warehouses with near-expiry stock, bakeries, hotels, cafeterias, farms and more.
+                </p>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-6">
+            <div class="card-custom">
+              <div class="card-header">Recipient Types Supported</div>
+              <div class="card-body">
+                <div class="d-flex flex-wrap gap-2">
+                  ${RECIPIENT_TYPES.map(t => `<span class="food-type-pill">${t}</span>`).join('')}
+                </div>
+                <p class="mt-3 mb-0" style="font-size:0.88rem;color:#64748b;">
+                  NGOs, orphanages, community centers, shelters, old-age homes and community kitchens.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // Init: show login
+    showLogin();
+  </script>
+</body>
+</html>
