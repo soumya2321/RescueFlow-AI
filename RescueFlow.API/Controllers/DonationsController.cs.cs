@@ -41,6 +41,14 @@ namespace RescueFlow.API.Controllers
                 .AsNoTracking()
                 .ToListAsync();
 
+            foreach (var donation in donations)
+            {
+                var urgency = _urgencyService.CalculateUrgency(donation);
+
+                donation.UrgencyScore = urgency.Score;
+                donation.UrgencyLevel = urgency.Level;
+            }
+
             return Ok(donations);
         }
 
@@ -54,6 +62,11 @@ namespace RescueFlow.API.Controllers
 
             if (donation == null)
                 return NotFound("Donation not found.");
+
+            var urgency = _urgencyService.CalculateUrgency(donation);
+
+            donation.UrgencyScore = urgency.Score;
+            donation.UrgencyLevel = urgency.Level;
 
             return Ok(donation);
         }
@@ -272,6 +285,7 @@ namespace RescueFlow.API.Controllers
 
             var ranking = donations
                 .Select(d => _urgencyService.CalculateUrgency(d))
+                .Where(u => u.Eligible)
                 .OrderByDescending(u => u.Score)
                 .ToList();
 
