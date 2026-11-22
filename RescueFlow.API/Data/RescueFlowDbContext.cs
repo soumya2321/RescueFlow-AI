@@ -15,4 +15,15 @@ namespace RescueFlow.API.Data
         public DbSet<Donation> Donations { get; set; }
             = null!;
     }
+
+    public DbSet<User> Users => Set<User>();
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+
+        modelBuilder.Entity<User>()
+            .HasIndex(u => u.Email)
+            .IsUnique();
+    }
 }
