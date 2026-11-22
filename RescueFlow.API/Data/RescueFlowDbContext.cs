@@ -12,19 +12,42 @@ namespace RescueFlow.API.Data
         {
         }
 
-        // Donation API
         public DbSet<Donation> Donations { get; set; } = null!;
 
-        // Authentication API
         public DbSet<User> Users => Set<User>();
 
-        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        public DbSet<VolunteerAssignment> VolunteerAssignments
+            => Set<VolunteerAssignment>();
+
+        protected override void OnModelCreating(
+            ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
             modelBuilder.Entity<User>()
                 .HasIndex(u => u.Email)
                 .IsUnique();
+
+            modelBuilder.Entity<VolunteerAssignment>(entity =>
+            {
+                entity.HasOne<Donation>()
+                    .WithMany()
+                    .HasForeignKey(a => a.DonationId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey(a => a.VolunteerId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey(a => a.AssignedByNgoId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(a => a.DonationId)
+                    .IsUnique();
+            });
         }
     }
 }

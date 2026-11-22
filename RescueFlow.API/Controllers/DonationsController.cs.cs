@@ -4,6 +4,8 @@ using Microsoft.EntityFrameworkCore;
 using RescueFlow.API.Data;
 using RescueFlow.API.Models;
 using RescueFlow.API.Services;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
 namespace RescueFlow.API.Controllers
 {
@@ -63,6 +65,13 @@ namespace RescueFlow.API.Controllers
             if (donation == null)
                 return NotFound("Donation not found.");
 
+
+            if (donation.Status != "Available")
+            {
+                return BadRequest(
+                    "Only available donations can be edited.");
+            }
+
             var urgency = _urgencyService.CalculateUrgency(donation);
 
             donation.UrgencyScore = urgency.Score;
@@ -73,6 +82,7 @@ namespace RescueFlow.API.Controllers
 
         // POST: api/donations
         [HttpPost]
+        [Authorize(Roles = "Donor")]
         public async Task<ActionResult<Donation>> CreateDonation(
             [FromBody] Donation donation)
         {
@@ -96,6 +106,17 @@ namespace RescueFlow.API.Controllers
             // The database enforces this foreign key.
             // Donor role validation should be added with authentication.
 
+            // Get the logged-in donor's UserId from the JWT.
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (!int.TryParse(userIdClaim, out int donorId))
+            {
+                return Unauthorized("Invalid user identity.");
+            }
+
+            // Never trust DonorId supplied by the client.
+            donation.DonorId = donorId;
+
             donation.DonationId = 0;
             donation.Status = "Available";
             donation.CreatedAt = DateTime.UtcNow;
@@ -116,6 +137,7 @@ namespace RescueFlow.API.Controllers
 
         // PUT: api/donations/1
         [HttpPut("{id:int}")]
+        [Authorize]
         public async Task<IActionResult> UpdateDonation(
             int id, [FromBody] Donation updatedDonation)
         {
@@ -124,6 +146,19 @@ namespace RescueFlow.API.Controllers
 
             if (donation == null)
                 return NotFound("Donation not found.");
+
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (!int.TryParse(userIdClaim, out int userId))
+            {
+                return Unauthorized("Invalid user identity.");
+            }
+
+            // Only the donation owner can update this donation.
+            if (donation.DonorId != userId)
+            {
+                return Forbid();
+            }
 
             if (string.IsNullOrWhiteSpace(updatedDonation.FoodName))
                 return BadRequest("Food name is required.");
@@ -166,6 +201,7 @@ namespace RescueFlow.API.Controllers
 
         // DELETE: api/donations/1
         [HttpDelete("{id:int}")]
+        [Authorize]
         public async Task<IActionResult> DeleteDonation(int id)
         {
             var donation = await _context.Donations
@@ -174,7 +210,28 @@ namespace RescueFlow.API.Controllers
             if (donation == null)
                 return NotFound("Donation not found.");
 
+            if (donation.Status != "Available")
+            {
+                return BadRequest(
+                    "Only available donations can be deleted.");
+            }
+
+            // Get logged-in user's ID from JWT.
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (!int.TryParse(userIdClaim, out int userId))
+            {
+                return Unauthorized("Invalid user identity.");
+            }
+
+            // Only the donation owner can delete it.
+            if (donation.DonorId != userId)
+            {
+                return Forbid();
+            }
+
             _context.Donations.Remove(donation);
+        
             await _context.SaveChangesAsync();
 
             return NoContent();
@@ -183,6 +240,7 @@ namespace RescueFlow.API.Controllers
         // PATCH: api/donations/1/status
 
         [HttpPatch("{id:int}/status")]
+        [Authorize]
         public async Task<IActionResult> UpdateDonationStatus(
             int id, [FromBody] DonationStatusRequest request)
         {
@@ -194,9 +252,7 @@ namespace RescueFlow.API.Controllers
 
             if (request == null ||
                 string.IsNullOrWhiteSpace(request.Status))
-            {
                 return BadRequest("Status is required.");
-            }
 
             string newStatus = request.Status.Trim();
 
@@ -206,10 +262,47 @@ namespace RescueFlow.API.Controllers
                     StringComparison.OrdinalIgnoreCase));
 
             if (validStatus == null)
+                return BadRequest("Invalid donation status.");
+
+            var userIdClaim =
+                User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (!int.TryParse(userIdClaim, out int userId))
+                return Unauthorized("Invalid user identity.");
+
+            // These statuses must be managed only through
+            // VolunteerAssignmentsController.
+            if (validStatus == "Assigned" ||
+                validStatus == "PickedUp" ||
+                validStatus == "Delivered" ||
+                validStatus == "Completed")
             {
                 return BadRequest(
-                    "Invalid status. Allowed statuses: " +
-                    string.Join(", ", ValidStatuses));
+                    "Use the Volunteer Assignment API for this status.");
+            }
+
+            // Only an NGO can accept or reject a donation.
+            if (validStatus == "Accepted" ||
+                validStatus == "Rejected")
+            {
+                if (!User.IsInRole("NGO"))
+                    return Forbid();
+            }
+
+            // Only the donor who owns the donation can cancel it.
+            if (validStatus == "Cancelled")
+            {
+                if (!User.IsInRole("Donor") ||
+                    donation.DonorId != userId)
+                    return Forbid();
+            }
+
+            // Only an NGO can mark a donation expired or failed.
+            if (validStatus == "Expired" ||
+                validStatus == "Failed")
+            {
+                if (!User.IsInRole("NGO"))
+                    return Forbid();
             }
 
             var allowedTransitions =
@@ -222,19 +315,7 @@ namespace RescueFlow.API.Controllers
                     },
                     ["Accepted"] = new[]
                     {
-                "Assigned", "Cancelled", "Rejected"
-                    },
-                    ["Assigned"] = new[]
-                    {
-                "PickedUp", "Cancelled", "Failed"
-                    },
-                    ["PickedUp"] = new[]
-                    {
-                "Delivered", "Failed"
-                    },
-                    ["Delivered"] = new[]
-                    {
-                "Completed"
+                "Cancelled", "Rejected"
                     }
                 };
 
@@ -247,6 +328,19 @@ namespace RescueFlow.API.Controllers
                 return BadRequest(
                     $"Invalid status transition from " +
                     $"'{donation.Status}' to '{validStatus}'.");
+            }
+
+            // Do not allow generic status changes
+            // to bypass an existing volunteer assignment.
+            bool hasAssignment =
+                await _context.VolunteerAssignments
+                    .AnyAsync(a => a.DonationId == id);
+
+            if (hasAssignment)
+            {
+                return BadRequest(
+                    "Donation has a volunteer assignment. " +
+                    "Use the Volunteer Assignment workflow.");
             }
 
             donation.Status = validStatus;
