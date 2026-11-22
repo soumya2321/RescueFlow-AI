@@ -22,36 +22,68 @@ public class AuthController : ControllerBase
         _jwtTokenService = jwtTokenService;
     }
 
-    [HttpPost("register")]
-    public async Task<ActionResult<AuthResponseDto>> Register([FromBody] RegisterRequestDto request)
-    {
-        var normalizedEmail = request.Email.Trim().ToLowerInvariant();
-        var normalizedRole = AllowedRoles.FirstOrDefault(
-            r => string.Equals(r, request.Role.Trim(), StringComparison.OrdinalIgnoreCase));
 
-        if (normalizedRole is null)
+    [HttpPost("register")]
+    public async Task<ActionResult<AuthResponseDto>> Register(
+        [FromBody] RegisterRequestDto request)
+    {
+        if (request == null ||
+            string.IsNullOrWhiteSpace(request.FullName) ||
+            string.IsNullOrWhiteSpace(request.Email) ||
+            string.IsNullOrWhiteSpace(request.Password) ||
+            string.IsNullOrWhiteSpace(request.Role))
         {
             return BadRequest(new
             {
-                message = "Invalid role. Allowed roles: Donor, NGO, Volunteer, Admin."
+                message = "All required fields must be provided."
             });
         }
+
+        var normalizedEmail =
+            request.Email.Trim().ToLowerInvariant();
+
+        var normalizedRole = request.Role.Trim();
+
+        // Public registration is restricted to Donors and Volunteers.
+        // NGO and Admin accounts must be provisioned securely.
+        if (!normalizedRole.Equals(
+                "Donor", StringComparison.OrdinalIgnoreCase) &&
+            !normalizedRole.Equals(
+                "Volunteer", StringComparison.OrdinalIgnoreCase))
+        {
+            return BadRequest(new
+            {
+                message =
+                    "Public registration allows only Donor and Volunteer roles."
+            });
+        }
+
+        normalizedRole = normalizedRole.Equals(
+            "Donor", StringComparison.OrdinalIgnoreCase)
+            ? "Donor"
+            : "Volunteer";
 
         var emailExists = await _context.Users
             .AnyAsync(u => u.Email.ToLower() == normalizedEmail);
 
         if (emailExists)
         {
-            return Conflict(new { message = "An account with this email already exists." });
+            return Conflict(new
+            {
+                message = "An account with this email already exists."
+            });
         }
 
         var user = new User
         {
             FullName = request.FullName.Trim(),
             Email = normalizedEmail,
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
+            PasswordHash =
+                BCrypt.Net.BCrypt.HashPassword(request.Password),
             Role = normalizedRole,
-            Phone = string.IsNullOrWhiteSpace(request.Phone) ? null : request.Phone.Trim(),
+            Phone = string.IsNullOrWhiteSpace(request.Phone)
+                ? null
+                : request.Phone.Trim(),
             IsActive = true,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
@@ -71,6 +103,7 @@ public class AuthController : ControllerBase
             Role = user.Role
         });
     }
+
 
     [HttpPost("login")]
     public async Task<ActionResult<AuthResponseDto>> Login([FromBody] LoginRequestDto request)
