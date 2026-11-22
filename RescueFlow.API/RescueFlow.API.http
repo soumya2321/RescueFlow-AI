@@ -1,3 +1,72 @@
+
+
+@baseUrl = http://localhost:5055
+@donationId = 10
+
+### 1. CREATE DONATION
+POST {{baseUrl}}/api/donations
+Content-Type: application/json
+
+{
+  "donorId": 2,
+  "foodName": "Test Vegetable Rice",
+  "foodCategory": "Cooked Food",
+  "quantity": 10,
+  "unit": "kg",
+  "foodCondition": "Fresh",
+  "storageType": "Refrigerated",
+  "pickupDeadline": "2026-11-30T20:00:00Z",
+  "pickupAddress": "Test Restaurant, Bengaluru",
+  "description": "Testing donation creation using SQL Server"
+}
+
+### 2. GET ALL DONATIONS
+GET {{baseUrl}}/api/donations
+
+### 3. GET DONATION BY ID
+GET {{baseUrl}}/api/donations/{{donationId}}
+
+### 4. UPDATE DONATION
+PUT {{baseUrl}}/api/donations/{{donationId}}
+Content-Type: application/json
+
+{
+  "foodName": "Updated Test Vegetable Rice",
+  "foodCategory": "Cooked Food",
+  "quantity": 20,
+  "unit": "kg",
+  "foodCondition": "Fresh",
+  "storageType": "Refrigerated",
+  "pickupDeadline": "2026-11-30T20:00:00Z",
+  "pickupAddress": "Test Restaurant, Bengaluru",
+  "description": "Updated donation for API testing"
+}
+
+### 5. UPDATE DONATION STATUS
+PATCH {{baseUrl}}/api/donations/{{donationId}}/status
+Content-Type: application/json
+
+{
+  "status": "Accepted"
+}
+
+### 6. GET DONATION URGENCY
+GET {{baseUrl}}/api/donations/{{donationId}}/urgency
+
+### 7. GET URGENCY RANKING
+GET {{baseUrl}}/api/donations/urgency-ranking
+
+### 8. TEST INVALID STATUS TRANSITION
+PATCH {{baseUrl}}/api/donations/{{donationId}}/status
+Content-Type: application/json
+
+{
+  "status": "Completed"
+}
+
+### 9. DELETE TEST DONATION
+DELETE {{baseUrl}}/api/donations/{{donationId}}
+
 @baseUrl = http://localhost:5055
 
 ### Register
@@ -20,3 +89,4 @@ Content-Type: application/json
   "email": "devika.test@rescueflow.ai",
   "password": "Password123!"
 }
+
