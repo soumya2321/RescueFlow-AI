@@ -1,5 +1,6 @@
 
 @baseUrl = http://localhost:5055
+@donationId = 10
 
 ### 1. CREATE DONATION
 POST {{baseUrl}}/api/donations
@@ -22,11 +23,10 @@ Content-Type: application/json
 GET {{baseUrl}}/api/donations
 
 ### 3. GET DONATION BY ID
-GET {{baseUrl}}/api/donations/9
-
+GET {{baseUrl}}/api/donations/{{donationId}}
 
 ### 4. UPDATE DONATION
-PUT {{baseUrl}}/api/donations/9
+PUT {{baseUrl}}/api/donations/{{donationId}}
 Content-Type: application/json
 
 {
@@ -41,9 +41,8 @@ Content-Type: application/json
   "description": "Updated donation for API testing"
 }
 
-
 ### 5. UPDATE DONATION STATUS
-PATCH {{baseUrl}}/api/donations/9/status
+PATCH {{baseUrl}}/api/donations/{{donationId}}/status
 Content-Type: application/json
 
 {
@@ -51,11 +50,18 @@ Content-Type: application/json
 }
 
 ### 6. GET DONATION URGENCY
-GET {{baseUrl}}/api/donations/9/urgency
+GET {{baseUrl}}/api/donations/{{donationId}}/urgency
 
 ### 7. GET URGENCY RANKING
 GET {{baseUrl}}/api/donations/urgency-ranking
 
+### 8. TEST INVALID STATUS TRANSITION
+PATCH {{baseUrl}}/api/donations/{{donationId}}/status
+Content-Type: application/json
 
-### 8. DELETE DONATION
-DELETE {{baseUrl}}/api/donations/9
+{
+  "status": "Completed"
+}
+
+### 9. DELETE TEST DONATION
+DELETE {{baseUrl}}/api/donations/{{donationId}}

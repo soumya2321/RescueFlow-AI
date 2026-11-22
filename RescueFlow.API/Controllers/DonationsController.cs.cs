@@ -168,6 +168,7 @@ namespace RescueFlow.API.Controllers
         }
 
         // PATCH: api/donations/1/status
+
         [HttpPatch("{id:int}/status")]
         public async Task<IActionResult> UpdateDonationStatus(
             int id, [FromBody] DonationStatusRequest request)
@@ -198,6 +199,43 @@ namespace RescueFlow.API.Controllers
                     string.Join(", ", ValidStatuses));
             }
 
+            var allowedTransitions =
+                new Dictionary<string, string[]>(
+                    StringComparer.OrdinalIgnoreCase)
+                {
+                    ["Available"] = new[]
+                    {
+                "Accepted", "Cancelled", "Expired", "Rejected"
+                    },
+                    ["Accepted"] = new[]
+                    {
+                "Assigned", "Cancelled", "Rejected"
+                    },
+                    ["Assigned"] = new[]
+                    {
+                "PickedUp", "Cancelled", "Failed"
+                    },
+                    ["PickedUp"] = new[]
+                    {
+                "Delivered", "Failed"
+                    },
+                    ["Delivered"] = new[]
+                    {
+                "Completed"
+                    }
+                };
+
+            if (!allowedTransitions.TryGetValue(
+                    donation.Status, out var allowed) ||
+                !allowed.Contains(
+                    validStatus,
+                    StringComparer.OrdinalIgnoreCase))
+            {
+                return BadRequest(
+                    $"Invalid status transition from " +
+                    $"'{donation.Status}' to '{validStatus}'.");
+            }
+
             donation.Status = validStatus;
             donation.UpdatedAt = DateTime.UtcNow;
 
@@ -205,6 +243,7 @@ namespace RescueFlow.API.Controllers
 
             return Ok(donation);
         }
+
 
         // GET: api/donations/1/urgency
         [HttpGet("{id:int}/urgency")]
