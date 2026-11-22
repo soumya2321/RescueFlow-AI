@@ -9,64 +9,53 @@ namespace RescueFlow.API.Services
         {
             DateTime now = DateTime.UtcNow;
 
-            DateTime expiry = donation.AvailableUntil.ToUniversalTime();
-            DateTime pickup = donation.PickupDeadline.ToUniversalTime();
+            DateTime pickup = donation.PickupDeadline.Kind switch
+            {
+                DateTimeKind.Utc => donation.PickupDeadline,
+                DateTimeKind.Local => donation.PickupDeadline.ToUniversalTime(),
+                _ => DateTime.SpecifyKind(
+                    donation.PickupDeadline,
+                    DateTimeKind.Utc)
+            };
 
-            double expiryHours = (expiry - now).TotalHours;
             double pickupHours = (pickup - now).TotalHours;
 
             int score = 0;
 
-            // Rule 1: Food expiry urgency (maximum 50 points)
-            if (expiryHours <= 0)
-            {
-                score += 50;
-            }
-            else if (expiryHours <= 2)
-            {
-                score += 45;
-            }
-            else if (expiryHours <= 6)
-            {
-                score += 35;
-            }
-            else if (expiryHours <= 12)
-            {
-                score += 25;
-            }
-            else if (expiryHours <= 24)
-            {
-                score += 15;
-            }
-            else
-            {
-                score += 5;
-            }
-
-            // Rule 2: Pickup deadline urgency (maximum 30 points)
+            // Rule 1: Pickup deadline urgency (maximum 80 points)
             if (pickupHours <= 0)
             {
-                score += 30;
+                score += 80;
             }
             else if (pickupHours <= 1)
             {
-                score += 25;
+                score += 75;
             }
             else if (pickupHours <= 3)
             {
-                score += 20;
+                score += 65;
             }
             else if (pickupHours <= 6)
             {
-                score += 15;
+                score += 50;
+            }
+            else if (pickupHours <= 12)
+            {
+                score += 35;
+            }
+            else if (pickupHours <= 24)
+            {
+                score += 20;
             }
             else
             {
                 score += 5;
             }
 
-            // Rule 3: Food condition (maximum 20 points)
-            string condition = donation.FoodCondition.Trim().ToLowerInvariant();
+            // Rule 2: Food condition (maximum 20 points)
+            string condition = (donation.FoodCondition ?? "")
+                .Trim()
+                .ToLowerInvariant();
 
             if (condition == "perishable" ||
                 condition == "highly perishable")
@@ -109,10 +98,9 @@ namespace RescueFlow.API.Services
 
             return new UrgencyResult
             {
-                DonationId = donation.Id,
+                DonationId = donation.DonationId,
                 Score = score,
                 Level = level,
-                HoursUntilExpiry = Math.Round(expiryHours, 2),
                 HoursUntilPickupDeadline = Math.Round(pickupHours, 2)
             };
         }
@@ -125,8 +113,6 @@ namespace RescueFlow.API.Services
         public int Score { get; set; }
 
         public string Level { get; set; } = string.Empty;
-
-        public double HoursUntilExpiry { get; set; }
 
         public double HoursUntilPickupDeadline { get; set; }
     }

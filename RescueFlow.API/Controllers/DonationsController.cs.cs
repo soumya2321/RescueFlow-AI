@@ -1,5 +1,7 @@
 ﻿
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using RescueFlow.API.Data;
 using RescueFlow.API.Models;
 using RescueFlow.API.Services;
 
@@ -9,33 +11,46 @@ namespace RescueFlow.API.Controllers
     [Route("api/[controller]")]
     public class DonationsController : ControllerBase
     {
-        private static readonly List<Donation> donations = new();
-        private static int nextId = 1;
+        private readonly RescueFlowDbContext _context;
+        private readonly UrgencyService _urgencyService = new();
 
-        private readonly UrgencyService urgencyService = new();
+        public DonationsController(RescueFlowDbContext context)
+        {
+            _context = context;
+        }
 
         private static readonly string[] ValidStatuses =
         {
             "Available",
             "Accepted",
+            "Assigned",
             "PickedUp",
             "Delivered",
+            "Completed",
+            "Cancelled",
             "Expired",
-            "Cancelled"
+            "Rejected",
+            "Failed"
         };
 
         // GET: api/donations
         [HttpGet]
-        public ActionResult<IEnumerable<Donation>> GetDonations()
+        public async Task<ActionResult<IEnumerable<Donation>>> GetDonations()
         {
+            var donations = await _context.Donations
+                .AsNoTracking()
+                .ToListAsync();
+
             return Ok(donations);
         }
 
         // GET: api/donations/1
-        [HttpGet("{id}")]
-        public ActionResult<Donation> GetDonationById(int id)
+        [HttpGet("{id:int}")]
+        public async Task<ActionResult<Donation>> GetDonationById(int id)
         {
-            var donation = donations.FirstOrDefault(d => d.Id == id);
+            var donation = await _context.Donations
+                .AsNoTracking()
+                .FirstOrDefaultAsync(d => d.DonationId == id);
 
             if (donation == null)
                 return NotFound("Donation not found.");
@@ -45,7 +60,7 @@ namespace RescueFlow.API.Controllers
 
         // POST: api/donations
         [HttpPost]
-        public ActionResult<Donation> CreateDonation(
+        public async Task<ActionResult<Donation>> CreateDonation(
             [FromBody] Donation donation)
         {
             if (string.IsNullOrWhiteSpace(donation.FoodName))
@@ -54,25 +69,45 @@ namespace RescueFlow.API.Controllers
             if (donation.Quantity <= 0)
                 return BadRequest("Quantity must be greater than zero.");
 
-            if (donation.AvailableUntil <= donation.PreparedAt)
+            if (donation.PickupDeadline <= DateTime.UtcNow)
                 return BadRequest(
-                    "AvailableUntil must be after PreparedAt.");
+                    "Pickup deadline must be in the future (UTC).");
 
-            donation.Id = nextId++;
+            if (string.IsNullOrWhiteSpace(donation.PickupAddress))
+                return BadRequest("Pickup address is required.");
+
+            if (string.IsNullOrWhiteSpace(donation.StorageType))
+                return BadRequest("Storage type is required.");
+
+            // DonorId must reference an existing Users.UserId.
+            // The database enforces this foreign key.
+            // Donor role validation should be added with authentication.
+
+            donation.DonationId = 0;
             donation.Status = "Available";
             donation.CreatedAt = DateTime.UtcNow;
+            donation.UpdatedAt = DateTime.UtcNow;
 
-            donations.Add(donation);
+            var urgency = _urgencyService.CalculateUrgency(donation);
+            donation.UrgencyScore = urgency.Score;
+            donation.UrgencyLevel = urgency.Level;
 
-            return StatusCode(201, donation);
+            _context.Donations.Add(donation);
+            await _context.SaveChangesAsync();
+
+            return CreatedAtAction(
+                nameof(GetDonationById),
+                new { id = donation.DonationId },
+                donation);
         }
 
         // PUT: api/donations/1
-        [HttpPut("{id}")]
-        public IActionResult UpdateDonation(
+        [HttpPut("{id:int}")]
+        public async Task<IActionResult> UpdateDonation(
             int id, [FromBody] Donation updatedDonation)
         {
-            var donation = donations.FirstOrDefault(d => d.Id == id);
+            var donation = await _context.Donations
+                .FirstOrDefaultAsync(d => d.DonationId == id);
 
             if (donation == null)
                 return NotFound("Donation not found.");
@@ -83,44 +118,62 @@ namespace RescueFlow.API.Controllers
             if (updatedDonation.Quantity <= 0)
                 return BadRequest("Quantity must be greater than zero.");
 
-            if (updatedDonation.AvailableUntil <= updatedDonation.PreparedAt)
+            if (updatedDonation.PickupDeadline <= DateTime.UtcNow)
                 return BadRequest(
-                    "AvailableUntil must be after PreparedAt.");
+                    "Pickup deadline must be in the future (UTC).");
 
-            donation.DonorId = updatedDonation.DonorId;
+            if (string.IsNullOrWhiteSpace(updatedDonation.PickupAddress))
+                return BadRequest("Pickup address is required.");
+
+            if (string.IsNullOrWhiteSpace(updatedDonation.StorageType))
+                return BadRequest("Storage type is required.");
+
             donation.FoodName = updatedDonation.FoodName;
             donation.FoodCategory = updatedDonation.FoodCategory;
             donation.Quantity = updatedDonation.Quantity;
             donation.Unit = updatedDonation.Unit;
             donation.FoodCondition = updatedDonation.FoodCondition;
-            donation.StorageDetails = updatedDonation.StorageDetails;
-            donation.PreparedAt = updatedDonation.PreparedAt;
-            donation.AvailableUntil = updatedDonation.AvailableUntil;
+            donation.StorageType = updatedDonation.StorageType;
             donation.PickupDeadline = updatedDonation.PickupDeadline;
+            donation.PickupAddress = updatedDonation.PickupAddress;
+            donation.Description = updatedDonation.Description;
+            donation.UpdatedAt = DateTime.UtcNow;
+
+            // Preserve DonorId, Status, and CreatedAt.
+            // Status is managed through the PATCH endpoint.
+
+            var urgency = _urgencyService.CalculateUrgency(donation);
+            donation.UrgencyScore = urgency.Score;
+            donation.UrgencyLevel = urgency.Level;
+
+            await _context.SaveChangesAsync();
 
             return Ok(donation);
         }
 
         // DELETE: api/donations/1
-        [HttpDelete("{id}")]
-        public IActionResult DeleteDonation(int id)
+        [HttpDelete("{id:int}")]
+        public async Task<IActionResult> DeleteDonation(int id)
         {
-            var donation = donations.FirstOrDefault(d => d.Id == id);
+            var donation = await _context.Donations
+                .FirstOrDefaultAsync(d => d.DonationId == id);
 
             if (donation == null)
                 return NotFound("Donation not found.");
 
-            donations.Remove(donation);
+            _context.Donations.Remove(donation);
+            await _context.SaveChangesAsync();
 
             return NoContent();
         }
 
         // PATCH: api/donations/1/status
-        [HttpPatch("{id}/status")]
-        public IActionResult UpdateDonationStatus(
+        [HttpPatch("{id:int}/status")]
+        public async Task<IActionResult> UpdateDonationStatus(
             int id, [FromBody] DonationStatusRequest request)
         {
-            var donation = donations.FirstOrDefault(d => d.Id == id);
+            var donation = await _context.Donations
+                .FirstOrDefaultAsync(d => d.DonationId == id);
 
             if (donation == null)
                 return NotFound("Donation not found.");
@@ -146,31 +199,40 @@ namespace RescueFlow.API.Controllers
             }
 
             donation.Status = validStatus;
+            donation.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
 
             return Ok(donation);
         }
 
         // GET: api/donations/1/urgency
-        [HttpGet("{id}/urgency")]
-        public IActionResult GetDonationUrgency(int id)
+        [HttpGet("{id:int}/urgency")]
+        public async Task<IActionResult> GetDonationUrgency(int id)
         {
-            var donation = donations.FirstOrDefault(d => d.Id == id);
+            var donation = await _context.Donations
+                .AsNoTracking()
+                .FirstOrDefaultAsync(d => d.DonationId == id);
 
             if (donation == null)
                 return NotFound("Donation not found.");
 
-            var urgency = urgencyService.CalculateUrgency(donation);
+            var urgency = _urgencyService.CalculateUrgency(donation);
 
             return Ok(urgency);
         }
 
         // GET: api/donations/urgency-ranking
         [HttpGet("urgency-ranking")]
-        public IActionResult GetUrgencyRanking()
+        public async Task<IActionResult> GetUrgencyRanking()
         {
-            var ranking = donations
+            var donations = await _context.Donations
+                .AsNoTracking()
                 .Where(d => d.Status == "Available")
-                .Select(d => urgencyService.CalculateUrgency(d))
+                .ToListAsync();
+
+            var ranking = donations
+                .Select(d => _urgencyService.CalculateUrgency(d))
                 .OrderByDescending(u => u.Score)
                 .ToList();
 
