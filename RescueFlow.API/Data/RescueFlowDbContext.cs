@@ -19,6 +19,8 @@ namespace RescueFlow.API.Data
         public DbSet<VolunteerAssignment> VolunteerAssignments
             => Set<VolunteerAssignment>();
 
+        public DbSet<NGOProfile> NGOProfiles => Set<NGOProfile>();
+
         protected override void OnModelCreating(
             ModelBuilder modelBuilder)
         {
@@ -27,6 +29,14 @@ namespace RescueFlow.API.Data
             modelBuilder.Entity<User>()
                 .HasIndex(u => u.Email)
                 .IsUnique();
+
+            modelBuilder.Entity<Donation>(entity =>
+            {
+                entity.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey(d => d.RecipientNgoId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
 
             modelBuilder.Entity<VolunteerAssignment>(entity =>
             {

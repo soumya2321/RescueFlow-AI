@@ -1,153 +1,186 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, Loader2, Sprout, UserCheck } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { extractErrorMessage } from '../api/client';
-
-const DEMO_ACCOUNTS = [
-  { role: 'Donor', email: 'donor@demo.com', password: 'Password123!' },
-  { role: 'Volunteer', email: 'volunteer@demo.com', password: 'Password123!' },
-  { role: 'NGO', email: 'ngo@demo.com', password: 'Password123!' },
-  { role: 'Admin', email: 'admin@demo.com', password: 'Password123!' }
-];
 
 export const LoginPage: React.FC = () => {
   const { login } = useAuth();
   const { showToast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
-  const [submitting, setSubmitting] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const performLogin = async (loginEmail: string, loginPassword: string) => {
-    setError('');
-    if (!loginEmail.trim() || !loginPassword) {
-      setError('Please enter both your email and password.');
-      return;
-    }
-    setSubmitting(true);
-    try {
-      const res = await login({ email: loginEmail.trim(), password: loginPassword });
-      showToast(`Welcome back, ${res.fullName}!`, 'success');
-      navigate('/dashboard');
-    } catch (err) {
-      setError(extractErrorMessage(err));
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/dashboard';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await performLogin(email, password);
+    setError(null);
+    setLoading(true);
+
+    try {
+      const res = await login({ email: email.trim(), password });
+      showToast(`Welcome back, ${res.fullName}!`, 'success');
+      navigate(from, { replace: true });
+    } catch (err) {
+      const msg = extractErrorMessage(err);
+      setError(msg);
+      showToast(msg, 'danger');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleDemoFill = (demoEmail: string, demoPassword: string) => {
+  const handleDemoLogin = async (demoEmail: string, roleName: string) => {
     setEmail(demoEmail);
-    setPassword(demoPassword);
-    setError('');
+    setPassword('Password123!');
+    setError(null);
+    setLoading(true);
+
+    try {
+      const res = await login({ email: demoEmail, password: 'Password123!' });
+      showToast(`Logged in as ${roleName} (${res.fullName})`, 'success');
+      navigate('/dashboard', { replace: true });
+    } catch (err) {
+      const msg = extractErrorMessage(err);
+      setError(msg);
+      showToast(msg, 'danger');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col justify-center items-center p-4">
-      <div className="w-full max-w-md bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8 space-y-6">
-        <div className="text-center space-y-2">
-          <Link to="/" className="inline-flex items-center justify-center w-11 h-11 rounded-2xl bg-emerald-600 text-white shadow-sm">
-            <Sprout className="w-6 h-6" />
-          </Link>
-          <h1 className="text-2xl font-bold text-slate-900">Sign in to RescueFlow AI</h1>
-          <p className="text-sm text-slate-500">Access your Donor, NGO, Volunteer, or Admin workspace</p>
+    <div className="auth-wrapper">
+      <div className="auth-card">
+        <div className="auth-logo">
+          <i className="bi bi-heart-pulse-fill"></i>
         </div>
+        <h1 className="auth-title">RescueFlow AI</h1>
+        <p className="auth-subtitle">From surplus to shared meals — faster & safer</p>
 
         {error && (
-          <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-sm font-medium">
-            {error}
+          <div className="alert alert-danger py-2 px-3 mb-3 d-flex align-items-center gap-2" style={{ fontSize: '0.88rem', borderRadius: '0.75rem' }}>
+            <i className="bi bi-exclamation-circle-fill"></i>
+            <span>{error}</span>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="email" className="block text-xs font-semibold text-slate-700 mb-1.5">
-              Email Address
-            </label>
+        <form onSubmit={handleSubmit}>
+          <div className="mb-3">
+            <label className="form-label" htmlFor="loginEmail">Email</label>
             <input
-              id="email"
               type="email"
-              required
+              className="form-control"
+              id="loginEmail"
+              placeholder="you@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              className="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              required
+              disabled={loading}
             />
           </div>
 
-          <div>
-            <label htmlFor="password" className="block text-xs font-semibold text-slate-700 mb-1.5">
-              Password
+          <div className="mb-3">
+            <label className="form-label" htmlFor="loginPassword">Password</label>
+            <input
+              type="password"
+              className="form-control"
+              id="loginPassword"
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              disabled={loading}
+            />
+          </div>
+
+          <div className="mb-3 form-check">
+            <input
+              type="checkbox"
+              className="form-check-input"
+              id="rememberMe"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+              disabled={loading}
+            />
+            <label className="form-check-label" htmlFor="rememberMe" style={{ fontSize: '0.9rem' }}>
+              Remember me
             </label>
-            <div className="relative">
-              <input
-                id="password"
-                type={showPassword ? 'text' : 'password'}
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your password"
-                className="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                aria-label="Toggle password visibility"
-              >
-                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            </div>
           </div>
 
           <button
             type="submit"
-            disabled={submitting}
-            className="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-60 transition"
+            className="btn btn-primary-custom"
+            style={{ width: '100%' }}
+            disabled={loading}
           >
-            {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
-            <span>{submitting ? 'Signing in...' : 'Sign In'}</span>
+            {loading ? (
+              <>
+                <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                Signing In...
+              </>
+            ) : (
+              <>
+                <i className="bi bi-box-arrow-in-right me-2"></i>Sign In
+              </>
+            )}
           </button>
         </form>
 
-        {/* Demo Login Accounts */}
-        <div className="rounded-xl bg-emerald-50/70 border border-emerald-200 p-4 space-y-2.5">
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-900">
-            <UserCheck className="w-4 h-4 text-emerald-600" />
-            <span>Demo Login Accounts (Click to Fill)</span>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {DEMO_ACCOUNTS.map((acc) => (
-              <button
-                key={acc.role}
-                type="button"
-                onClick={() => handleDemoFill(acc.email, acc.password)}
-                className="text-left p-2.5 rounded-lg bg-white border border-emerald-200 hover:border-emerald-400 hover:bg-emerald-50 transition"
-              >
-                <div className="text-xs font-bold text-slate-900">{acc.role}</div>
-                <div className="text-[11px] text-slate-600 truncate">ID: {acc.email}</div>
-                <div className="text-[11px] font-mono text-emerald-700">PW: {acc.password}</div>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <p className="text-center text-sm text-slate-600">
-          Don&apos;t have an account?{' '}
-          <Link to="/register" className="font-semibold text-emerald-600 hover:text-emerald-700">
-            Create one
+        <p className="text-center mt-3 mb-0" style={{ fontSize: '0.9rem', color: '#64748b' }}>
+          Don't have an account?{' '}
+          <Link to="/register" style={{ color: '#0d9488', fontWeight: 600, textDecoration: 'none' }}>
+            Sign up
           </Link>
         </p>
+
+        <div className="demo-accounts">
+          <h6>
+            <i className="bi bi-lightning-charge-fill me-1"></i> Quick Demo Login
+          </h6>
+          <button
+            type="button"
+            className="demo-btn"
+            onClick={() => handleDemoLogin('donor@demo.com', 'Donor')}
+            disabled={loading}
+          >
+            <span>donor@demo.com</span>
+            <span className="role-badge">Donor</span>
+          </button>
+          <button
+            type="button"
+            className="demo-btn"
+            onClick={() => handleDemoLogin('ngo@demo.com', 'NGO / Recipient')}
+            disabled={loading}
+          >
+            <span>ngo@demo.com</span>
+            <span className="role-badge">NGO / Recipient</span>
+          </button>
+          <button
+            type="button"
+            className="demo-btn"
+            onClick={() => handleDemoLogin('volunteer@demo.com', 'Volunteer')}
+            disabled={loading}
+          >
+            <span>volunteer@demo.com</span>
+            <span className="role-badge">Volunteer</span>
+          </button>
+          <button
+            type="button"
+            className="demo-btn"
+            onClick={() => handleDemoLogin('admin@demo.com', 'Administrator')}
+            disabled={loading}
+          >
+            <span>admin@demo.com</span>
+            <span className="role-badge">Administrator</span>
+          </button>
+        </div>
       </div>
     </div>
   );

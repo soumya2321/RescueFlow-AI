@@ -1,4 +1,4 @@
-﻿
+
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -13,6 +13,8 @@ namespace RescueFlow.API.Models
         public int DonationId { get; set; }
 
         public int DonorId { get; set; }
+
+        public int? RecipientNgoId { get; set; }
 
         [Required]
         [MaxLength(200)]
