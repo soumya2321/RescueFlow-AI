@@ -1,8 +1,7 @@
-
+﻿
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using RescueFlow.API.Data;
 using System.Security.Claims;
 
@@ -14,14 +13,10 @@ namespace RescueFlow.API.Controllers
     public class DashboardController : ControllerBase
     {
         private readonly RescueFlowDbContext _context;
-        private readonly ILogger<DashboardController> _logger;
 
-        public DashboardController(
-            RescueFlowDbContext context,
-            ILogger<DashboardController> logger)
+        public DashboardController(RescueFlowDbContext context)
         {
             _context = context;
-            _logger = logger;
         }
 
         private int? GetCurrentUserId()
@@ -39,44 +34,36 @@ namespace RescueFlow.API.Controllers
         [Authorize(Roles = "Donor")]
         public async Task<IActionResult> GetDonorDashboard()
         {
-            try
+            var donorId = GetCurrentUserId();
+
+            if (donorId == null)
+                return Unauthorized("Invalid user token.");
+
+            var donations = _context.Donations
+                .AsNoTracking()
+                .Where(d => d.DonorId == donorId.Value);
+
+            var result = new
             {
-                var donorId = GetCurrentUserId();
+                TotalDonations = await donations.CountAsync(),
 
-                if (donorId == null)
-                    return Unauthorized(new { message = "Invalid user token." });
+                AvailableDonations = await donations
+                    .CountAsync(d => d.Status == "Available"),
 
-                var donations = _context.Donations
-                    .AsNoTracking()
-                    .Where(d => d.DonorId == donorId.Value);
+                AcceptedDonations = await donations
+                    .CountAsync(d => d.Status == "Accepted"),
 
-                var result = new
-                {
-                    TotalDonations = await donations.CountAsync(),
+                AssignedDonations = await donations
+                    .CountAsync(d => d.Status == "Assigned"),
 
-                    AvailableDonations = await donations
-                        .CountAsync(d => d.Status == "Available"),
+                CompletedDonations = await donations
+                    .CountAsync(d => d.Status == "Completed"),
 
-                    AcceptedDonations = await donations
-                        .CountAsync(d => d.Status == "Accepted"),
+                CancelledDonations = await donations
+                    .CountAsync(d => d.Status == "Cancelled")
+            };
 
-                    AssignedDonations = await donations
-                        .CountAsync(d => d.Status == "Assigned"),
-
-                    CompletedDonations = await donations
-                        .CountAsync(d => d.Status == "Completed"),
-
-                    CancelledDonations = await donations
-                        .CountAsync(d => d.Status == "Cancelled")
-                };
-
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to load donor dashboard metrics.");
-                return StatusCode(500, new { message = "Unable to load donor dashboard metrics at this time." });
-            }
+            return Ok(result);
         }
 
         // NGO DASHBOARD
@@ -84,46 +71,40 @@ namespace RescueFlow.API.Controllers
         [Authorize(Roles = "NGO")]
         public async Task<IActionResult> GetNgoDashboard()
         {
-            try
+            var ngoId = GetCurrentUserId();
+
+            if (ngoId == null)
+                return Unauthorized("Invalid user token.");
+
+            var donations = _context.Donations.AsNoTracking();
+
+            var assignments = _context.VolunteerAssignments
+                .AsNoTracking()
+                .Where(a => a.AssignedByNgoId == ngoId.Value);
+
+            var result = new
             {
-                var ngoId = GetCurrentUserId();
+                AvailableDonations = await donations
+                    .CountAsync(d => d.Status == "Available"),
 
-                if (ngoId == null)
-                    return Unauthorized(new { message = "Invalid user token." });
+                AcceptedDonations = await donations
+                    .CountAsync(d =>
+                        d.Status == "Accepted" &&
+                        d.AcceptedByNgoId == ngoId.Value),
 
-                var donations = _context.Donations.AsNoTracking();
+                MyTotalAssignments = await assignments.CountAsync(),
 
-                var assignments = _context.VolunteerAssignments
-                    .AsNoTracking()
-                    .Where(a => a.AssignedByNgoId == ngoId.Value);
+                MyActiveAssignments = await assignments
+                    .CountAsync(a =>
+                        a.Status == "Assigned" ||
+                        a.Status == "PickedUp" ||
+                        a.Status == "Delivered"),
 
-                var result = new
-                {
-                    AvailableDonations = await donations
-                        .CountAsync(d => d.Status == "Available"),
+                MyCompletedAssignments = await assignments
+                    .CountAsync(a => a.Status == "Completed")
+            };
 
-                    AcceptedDonations = await donations
-                        .CountAsync(d => d.Status == "Accepted"),
-
-                    MyTotalAssignments = await assignments.CountAsync(),
-
-                    MyActiveAssignments = await assignments
-                        .CountAsync(a =>
-                            a.Status == "Assigned" ||
-                            a.Status == "PickedUp" ||
-                            a.Status == "Delivered"),
-
-                    MyCompletedAssignments = await assignments
-                        .CountAsync(a => a.Status == "Completed")
-                };
-
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to load NGO dashboard metrics.");
-                return StatusCode(500, new { message = "Unable to load NGO dashboard metrics at this time. Please verify database table configuration." });
-            }
+            return Ok(result);
         }
 
         // VOLUNTEER DASHBOARD
@@ -131,41 +112,33 @@ namespace RescueFlow.API.Controllers
         [Authorize(Roles = "Volunteer")]
         public async Task<IActionResult> GetVolunteerDashboard()
         {
-            try
+            var volunteerId = GetCurrentUserId();
+
+            if (volunteerId == null)
+                return Unauthorized("Invalid user token.");
+
+            var assignments = _context.VolunteerAssignments
+                .AsNoTracking()
+                .Where(a => a.VolunteerId == volunteerId.Value);
+
+            var result = new
             {
-                var volunteerId = GetCurrentUserId();
+                TotalAssignments = await assignments.CountAsync(),
 
-                if (volunteerId == null)
-                    return Unauthorized(new { message = "Invalid user token." });
+                PendingPickups = await assignments
+                    .CountAsync(a => a.Status == "Assigned"),
 
-                var assignments = _context.VolunteerAssignments
-                    .AsNoTracking()
-                    .Where(a => a.VolunteerId == volunteerId.Value);
+                PickedUpDonations = await assignments
+                    .CountAsync(a => a.Status == "PickedUp"),
 
-                var result = new
-                {
-                    TotalAssignments = await assignments.CountAsync(),
+                DeliveredDonations = await assignments
+                    .CountAsync(a => a.Status == "Delivered"),
 
-                    PendingPickups = await assignments
-                        .CountAsync(a => a.Status == "Assigned"),
+                CompletedAssignments = await assignments
+                    .CountAsync(a => a.Status == "Completed")
+            };
 
-                    PickedUpDonations = await assignments
-                        .CountAsync(a => a.Status == "PickedUp"),
-
-                    DeliveredDonations = await assignments
-                        .CountAsync(a => a.Status == "Delivered"),
-
-                    CompletedAssignments = await assignments
-                        .CountAsync(a => a.Status == "Completed")
-                };
-
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to load volunteer dashboard metrics.");
-                return StatusCode(500, new { message = "Unable to load volunteer dashboard metrics at this time. Please verify database table configuration." });
-            }
+            return Ok(result);
         }
     }
 }

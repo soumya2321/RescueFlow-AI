@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { Eye, EyeOff, Info, Loader2, Sprout } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { extractErrorMessage } from '../api/client';
@@ -13,149 +14,164 @@ export const RegisterPage: React.FC = () => {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<'Donor' | 'Volunteer'>('Donor');
   const [phone, setPhone] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [organizationName, setOrganizationName] = useState('');
+  const [maximumCapacity, setMaximumCapacity] = useState('');
+  const [capacityUnit, setCapacityUnit] = useState('kg');
+  const [location, setLocation] = useState('');
+  const [role, setRole] = useState<UserRole>('Donor');
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
-    setLoading(true);
-
+    setError('');
+    if (!fullName.trim() || !email.trim() || password.length < 8 || new TextEncoder().encode(password).length > 72) {
+      setError('Full name, valid email, and a password of 8 characters (maximum 72 bytes) are required.');
+      return;
+    }
+    setSubmitting(true);
     try {
       const res = await register({
         fullName: fullName.trim(),
-        email: email.trim().toLowerCase(),
+        email: email.trim(),
         password,
-        role: role as UserRole,
-        phone: phone.trim() || undefined
+        role,
+        phone: phone.trim() || undefined,
+        ...(role === "NGO" ? { organizationName, maximumCapacity: Number(maximumCapacity), capacityUnit, location } : {})
       });
-      showToast(`Account created successfully! Welcome, ${res.fullName}.`, 'success');
-      navigate('/dashboard', { replace: true });
+      showToast(`Account created for ${res.fullName} (${res.role})!`, 'success');
+      navigate('/dashboard');
     } catch (err) {
-      const msg = extractErrorMessage(err);
-      setError(msg);
-      showToast(msg, 'danger');
+      setError(extractErrorMessage(err));
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
   return (
-    <div className="auth-wrapper">
-      <div className="auth-card" style={{ maxWidth: '480px' }}>
-        <div className="auth-logo">
-          <i className="bi bi-person-plus-fill"></i>
+    <div className="min-h-screen bg-slate-50 flex flex-col justify-center items-center p-4">
+      <div className="w-full max-w-md bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8 space-y-5">
+        <div className="text-center space-y-2">
+          <Link to="/" className="inline-flex items-center justify-center w-11 h-11 rounded-2xl bg-emerald-600 text-white shadow-sm">
+            <Sprout className="w-6 h-6" />
+          </Link>
+          <h1 className="text-2xl font-bold text-slate-900">Create your account</h1>
+          <p className="text-sm text-slate-500">Join RescueFlow AI to donate or deliver surplus food</p>
         </div>
-        <h1 className="auth-title">Create Account</h1>
-        <p className="auth-subtitle">Join the movement against food waste</p>
 
         {error && (
-          <div className="alert alert-danger py-2 px-3 mb-3 d-flex align-items-center gap-2" style={{ fontSize: '0.88rem', borderRadius: '0.75rem' }}>
-            <i className="bi bi-exclamation-circle-fill"></i>
-            <span>{error}</span>
+          <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-sm font-medium">
+            {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit}>
-          <div className="row g-2 mb-2">
-            <div className="col-12 col-sm-6">
-              <label className="form-label" htmlFor="regName">Full Name *</label>
-              <input
-                type="text"
-                className="form-control"
-                id="regName"
-                placeholder="e.g. John Doe"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                required
-                disabled={loading}
-              />
-            </div>
-            <div className="col-12 col-sm-6">
-              <label className="form-label" htmlFor="regEmail">Email *</label>
-              <input
-                type="email"
-                className="form-control"
-                id="regEmail"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                disabled={loading}
-              />
-            </div>
-          </div>
-
-          <div className="mb-2">
-            <label className="form-label" htmlFor="regPassword">Password *</label>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label htmlFor="fullName" className="block text-xs font-semibold text-slate-700 mb-1">Full Name</label>
             <input
-              type="password"
-              className="form-control"
-              id="regPassword"
-              placeholder="Minimum 6 characters"
-              minLength={6}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              id="fullName"
+              type="text"
               required
-              disabled={loading}
+              maxLength={100}
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              placeholder="e.g., GreenBite Bistro"
+              className="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
             />
           </div>
 
-          <div className="mb-2">
-            <label className="form-label" htmlFor="regRole">I am a... *</label>
-            <select
-              className="form-select"
-              id="regRole"
-              value={role}
-              onChange={(e) => setRole(e.target.value as 'Donor' | 'Volunteer')}
+          <div>
+            <label htmlFor="email" className="block text-xs font-semibold text-slate-700 mb-1">Email Address</label>
+            <input
+              id="email"
+              type="email"
               required
-              disabled={loading}
-            >
-              <option value="Donor">Food Donor (Restaurant / Supermarket / Storage / Bakery / Farm)</option>
-              <option value="Volunteer">Volunteer (Pickup & Delivery)</option>
-            </select>
-            <div className="form-text" style={{ fontSize: '0.78rem', color: '#64748b' }}>
-              Note: NGO and Admin accounts are provisioned securely by platform administrators.
-            </div>
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              className="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            />
           </div>
 
-          <div className="mb-3">
-            <label className="form-label" htmlFor="regPhone">Phone (Optional)</label>
+          <div>
+            <label htmlFor="phone" className="block text-xs font-semibold text-slate-700 mb-1">Phone Number (optional)</label>
             <input
+              id="phone"
               type="tel"
-              className="form-control"
-              id="regPhone"
-              placeholder="+91 98765 43210"
+              maxLength={20}
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              disabled={loading}
+              placeholder="+91 98765 43210"
+              className="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
             />
+          </div>
+
+          <div>
+            <label htmlFor="role" className="block text-xs font-semibold text-slate-700 mb-1">Role</label>
+            <select
+              id="role"
+              value={role}
+              onChange={(e) => setRole(e.target.value as UserRole)}
+              className="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            >
+              <option value="Donor">Donor</option>
+              <option value="Volunteer">Volunteer</option>
+              <option value="NGO">NGO</option>
+              
+            </select>
+            {role === 'NGO' && (
+              <p className="mt-1.5 flex items-start gap-1.5 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2">
+                <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                <span>NGO accounts require administrator approval before rescue operations.</span>
+              </p>
+            )}
+          </div>
+
+          {role === 'NGO' && <div className="space-y-2">
+            <label>Organization name<input className="w-full border rounded p-2" required maxLength={200} value={organizationName} onChange={e=>setOrganizationName(e.target.value)} /></label>
+            <label>Maximum capacity<input className="w-full border rounded p-2" type="number" required min="0.01" max="99999999.99" step="0.01" value={maximumCapacity} onChange={e=>setMaximumCapacity(e.target.value)} /></label>
+            <label>Capacity unit<input className="w-full border rounded p-2" required maxLength={20} value={capacityUnit} onChange={e=>setCapacityUnit(e.target.value)} /></label>
+            <label>Location<input className="w-full border rounded p-2" required maxLength={500} value={location} onChange={e=>setLocation(e.target.value)} /></label>
+          </div>}
+          <div>
+            <label htmlFor="password" className="block text-xs font-semibold text-slate-700 mb-1">Password</label>
+            <div className="relative">
+              <input
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                required
+                minLength={8}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Minimum 8 characters"
+                className="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                aria-label="Toggle password visibility"
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
           </div>
 
           <button
             type="submit"
-            className="btn btn-primary-custom"
-            style={{ width: '100%' }}
-            disabled={loading}
+            disabled={submitting}
+            className="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-60 transition"
           >
-            {loading ? (
-              <>
-                <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                Creating Account...
-              </>
-            ) : (
-              <>
-                <i className="bi bi-check2-circle me-2"></i>Create Account
-              </>
-            )}
+            {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
+            <span>{submitting ? 'Creating account...' : 'Create Account'}</span>
           </button>
         </form>
 
-        <p className="text-center mt-3 mb-0" style={{ fontSize: '0.9rem', color: '#64748b' }}>
+        <p className="text-center text-sm text-slate-600">
           Already have an account?{' '}
-          <Link to="/login" style={{ color: '#0d9488', fontWeight: 600, textDecoration: 'none' }}>
+          <Link to="/login" className="font-semibold text-emerald-600 hover:text-emerald-700">
             Sign in
           </Link>
         </p>

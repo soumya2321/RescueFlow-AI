@@ -28,12 +28,11 @@
 | **Management Tool** | SQL Server Management Studio (SSMS) |
 | **ORM** | Entity Framework Core (EF Core) |
 | **Backend** | C# ASP.NET Core Web API (.NET 10) |
-| **Frontend** | React 18, TypeScript, Vite, Tailwind CSS |
-| **Number of Tables** | 6 |
-| **Total Columns** | 57 |
-| **Foreign Keys** | 10 |
-| **Check Constraints** | 10 |
-| **Indexes** | 14 |
+| **Number of Tables** | 5 |
+| **Total Columns** | 50 |
+| **Foreign Keys** | 6 |
+| **Check Constraints** | 9 |
+| **Indexes** | 11 |
 
 **Purpose:** RescueFlowDB stores all data for the RescueFlow AI food waste prevention system — user accounts, NGO profiles, food donations, and pickup/delivery tracking.
 
@@ -44,7 +43,7 @@
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                   Frontend (Browser)                     │
-│         React 18, TypeScript, Vite, Tailwind CSS         │
+│              HTML, CSS, JavaScript, Bootstrap             │
 └──────────────────────┬──────────────────────────────────┘
                        │  HTTP (REST API calls)
                        ▼
@@ -71,11 +70,8 @@
                        │  │ NGOAcceptedCategories      │    │
                        │  └───────────────────────────┘    │
                        │  ┌────────────┐  ┌────────────┐  │
-                       │  │ Donations  │  │Assignments │  │
+                       │  │ Donations  │  │ PickupTasks │  │
                        │  └────────────┘  └────────────┘  │
-                       │  ┌────────────┐                   │
-                       │  │PickupTasks │                   │
-                       │  └────────────┘                   │
                        └──────────────────────────────────┘
 ```
 

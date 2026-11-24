@@ -37,6 +37,10 @@ export interface RegisterRequest {
   password: string;
   role: UserRole;
   phone?: string;
+  organizationName?: string;
+  maximumCapacity?: number;
+  capacityUnit?: string;
+  location?: string;
 }
 
 export interface LoginRequest {
@@ -47,7 +51,7 @@ export interface LoginRequest {
 export interface Donation {
   donationId: number;
   donorId: number;
-  recipientNgoId?: number | null;
+acceptedByNgoId: number | null;
   foodName: string;
   foodCategory: string;
   quantity: number;
@@ -62,32 +66,6 @@ export interface Donation {
   urgencyLevel: UrgencyLevel;
   createdAt: string;
   updatedAt: string;
-}
-
-export interface AvailableTask {
-  donationId: number;
-  foodName: string;
-  foodCategory: string;
-  quantity: number;
-  unit: string;
-  foodCondition: string;
-  storageType: string;
-  pickupDeadline: string;
-  pickupAddress: string;
-  description?: string | null;
-  urgencyScore: number;
-  urgencyLevel: UrgencyLevel;
-  status: string;
-  recipientNgoId: number;
-  recipientNgoName: string;
-  recipientNgoAddress: string;
-}
-
-export interface VolunteerUser {
-  userId: number;
-  fullName: string;
-  email: string;
-  phone?: string;
 }
 
 export interface CreateDonationRequest {
@@ -144,28 +122,48 @@ export interface VolunteerDashboardStats {
   completedAssignments: number;
 }
 
-export interface DepartmentInfo {
-  id: string;
-  label: string;
-  icon: string;
+export interface VolunteerSummary {
+  userId: number;
+  fullName: string;
 }
 
-export const DEPARTMENTS: DepartmentInfo[] = [
-  { id: 'restaurant', label: 'Restaurant', icon: 'bi-cup-hot' },
-  { id: 'supermarket', label: 'Supermarket / Grocery', icon: 'bi-shop' },
-  { id: 'storage', label: 'Storage / Warehouse', icon: 'bi-box-seam' },
-  { id: 'bakery', label: 'Bakery', icon: 'bi-cake2' },
-  { id: 'hotel', label: 'Hotel / Catering', icon: 'bi-building' },
-  { id: 'cafeteria', label: 'Cafeteria / Institutional', icon: 'bi-egg-fried' },
-  { id: 'farm', label: 'Farm / Produce', icon: 'bi-flower1' },
-  { id: 'other', label: 'Other', icon: 'bi-three-dots' }
-];
+export interface AdminDashboardStats {
+  totalUsers: number;
+  activeUsers: number;
+  inactiveUsers: number;
+  totalDonors: number;
+  totalNGOs: number;
+  totalVolunteers: number;
+  totalAdmins: number;
 
-export const RECIPIENT_TYPES: string[] = [
-  'NGO',
-  'Orphanage',
-  'Community Center',
-  'Shelter',
-  'Old Age Home',
-  'Community Kitchen'
-];
+  totalDonations: number;
+  availableDonations: number;
+  acceptedDonations: number;
+  assignedDonations: number;
+  pickedUpDonations: number;
+  deliveredDonations: number;
+  completedDonations: number;
+  cancelledDonations: number;
+  expiredDonations: number;
+  rejectedDonations: number;
+  failedDonations: number;
+
+  totalAssignments: number;
+  activeAssignments: number;
+  completedAssignments: number;
+}
+
+export interface AdminUser extends UserProfile {
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UpdateUserStatusResponse {
+  message: string;
+  userId: number;
+  fullName: string;
+  email: string;
+  role: UserRole;
+  isActive: boolean;
+  updatedAt: string;
+}

@@ -1,70 +1,46 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { useToast } from '../context/ToastContext';
-import { dashboardApi, donationsApi, assignmentsApi } from '../api/services';
+import { Link } from 'react-router-dom';
+import { Bar, BarChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { CheckCircle2, Flame, Package, PlusCircle, RefreshCw, Scale } from 'lucide-react';
+import { adminApi, dashboardApi, donationsApi } from '../api/services';
 import { extractErrorMessage } from '../api/client';
+import { useAuth } from '../context/AuthContext';
+import { EmptyState, ErrorBanner, LoadingSpinner } from '../components/FeedbackStates';
 import { StatusBadge, UrgencyBadge } from '../components/Badges';
-import { LoadingSpinner, ErrorBanner } from '../components/FeedbackStates';
-import type {
-  Donation,
-  DonorDashboardStats,
-  NgoDashboardStats,
-  VolunteerAssignment,
-  VolunteerDashboardStats
-} from '../types';
+import type { AdminDashboardStats, Donation, DonorDashboardStats, NgoDashboardStats, VolunteerDashboardStats } from '../types';
+
+const URGENCY_COLORS: Record<string, string> = {
+  Critical: '#dc2626',
+  High: '#ea580c',
+  Medium: '#d97706',
+  Low: '#16a34a'
+};
 
 export const DashboardPage: React.FC = () => {
   const { user } = useAuth();
-  const { showToast } = useToast();
-  const navigate = useNavigate();
-
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  // Data states
-  const [donorStats, setDonorStats] = useState<DonorDashboardStats | null>(null);
-  const [ngoStats, setNgoStats] = useState<NgoDashboardStats | null>(null);
-  const [volunteerStats, setVolunteerStats] = useState<VolunteerDashboardStats | null>(null);
   const [donations, setDonations] = useState<Donation[]>([]);
-  const [assignments, setAssignments] = useState<VolunteerAssignment[]>([]);
-  const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
-
-  const role = user?.role;
+  const [roleStats, setRoleStats] = useState<AdminDashboardStats | DonorDashboardStats | NgoDashboardStats | VolunteerDashboardStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   const loadData = async () => {
     setLoading(true);
-    setError(null);
-
+    setError('');
     try {
-      if (role === 'Donor') {
-        const [stats, allDonations] = await Promise.all([
-          dashboardApi.donor().catch(() => null),
-          donationsApi.getAll().catch(() => [])
-        ]);
-        setDonorStats(stats);
-        // Filter donor's donations
-        setDonations(allDonations.filter((d) => d.donorId === user?.userId));
-      } else if (role === 'NGO') {
-        const [stats, allDonations] = await Promise.all([
-          dashboardApi.ngo().catch(() => null),
-          donationsApi.getAll().catch(() => [])
-        ]);
-        setNgoStats(stats);
-        setDonations(allDonations);
-      } else if (role === 'Volunteer') {
-        const [stats, myAssignments, allDonations] = await Promise.all([
-          dashboardApi.volunteer().catch(() => null),
-          assignmentsApi.getMyAssignments().catch(() => []),
-          donationsApi.getAll().catch(() => [])
-        ]);
-        setVolunteerStats(stats);
-        setAssignments(myAssignments);
-        setDonations(allDonations);
-      } else if (role === 'Admin') {
-        const allDonations = await donationsApi.getAll().catch(() => []);
-        setDonations(allDonations);
-      }
+      const [allDonations, roleDash] = await Promise.all([
+        donationsApi.getAll(),
+        user?.role === 'Donor'
+          ? dashboardApi.donor()
+          : user?.role === 'NGO'
+          ? dashboardApi.ngo()
+          : user?.role === 'Volunteer'
+          ? dashboardApi.volunteer()
+          : user?.role === 'Admin'
+          ? adminApi.getDashboard()
+          : Promise.resolve(null)
+      ]);
+      setDonations(allDonations);
+      setRoleStats(roleDash);
     } catch (err) {
       setError(extractErrorMessage(err));
     } finally {
@@ -73,656 +49,223 @@ export const DashboardPage: React.FC = () => {
   };
 
   useEffect(() => {
-    loadData();
-  }, [role, user?.userId]);
+    if (user?.userId) loadData();
+  }, [user?.userId, user?.role]);
 
-  // NGO Request Action
-  const handleNgoRequest = async (donationId: number) => {
-    setActionLoadingId(donationId);
-    try {
-      await donationsApi.updateStatus(donationId, 'Accepted');
-      showToast('Food requested successfully! Status is now Accepted.', 'success');
-      await loadData();
-    } catch (err) {
-      showToast(extractErrorMessage(err), 'danger');
-    } finally {
-      setActionLoadingId(null);
-    }
-  };
+  if (loading) return <LoadingSpinner label="Loading dashboard analytics..." />;
+  if (error) return <ErrorBanner message={error} onRetry={loadData} />;
 
-  // Volunteer Pickup / Deliver Actions
-  const handleVolunteerPickup = async (assignmentId: number) => {
-    setActionLoadingId(assignmentId);
-    try {
-      await assignmentsApi.confirmPickup(assignmentId);
-      showToast('Pickup confirmed! Please proceed with delivery.', 'success');
-      await loadData();
-    } catch (err) {
-      showToast(extractErrorMessage(err), 'danger');
-    } finally {
-      setActionLoadingId(null);
-    }
-  };
+  const relevantDonations =
+    user?.role === 'Donor' ? donations.filter((d) => d.donorId === user.userId) : donations;
 
-  const handleVolunteerDeliver = async (assignmentId: number) => {
-    setActionLoadingId(assignmentId);
-    try {
-      await assignmentsApi.confirmDelivery(assignmentId);
-      showToast('Delivery confirmed! Awaiting final NGO confirmation.', 'success');
-      await loadData();
-    } catch (err) {
-      showToast(extractErrorMessage(err), 'danger');
-    } finally {
-      setActionLoadingId(null);
-    }
-  };
+  const totalCount = relevantDonations.length;
+  const availableCount = relevantDonations.filter((d) => d.status === 'Available').length;
+  const acceptedCount = relevantDonations.filter((d) => d.status === 'Accepted').length;
+  const completedList = relevantDonations.filter((d) => d.status === 'Completed');
+  const completedCount = completedList.length;
+  const urgentCount = relevantDonations.filter((d) => d.urgencyLevel === 'Critical' || d.urgencyLevel === 'High').length;
+  const totalFoodRescued = completedList.reduce((sum, d) => sum + Number(d.quantity || 0), 0);
 
-  if (loading) {
-    return <LoadingSpinner label="Loading your dashboard..." />;
-  }
+  const statusData = ['Available', 'Accepted', 'Assigned', 'PickedUp', 'Delivered', 'Completed'].map((status) => ({
+    name: status,
+    count: relevantDonations.filter((d) => d.status === status).length
+  }));
 
-  if (error) {
-    return <ErrorBanner message={error} onRetry={loadData} />;
-  }
+  const urgencyData = ['Critical', 'High', 'Medium', 'Low']
+    .map((level) => ({
+      name: level,
+      value: relevantDonations.filter((d) => d.urgencyLevel === level).length
+    }))
+    .filter((x) => x.value > 0);
 
-  // ==================== DONOR DASHBOARD ====================
-  if (role === 'Donor') {
-    const activeListings = donorStats?.availableDonations ?? donations.filter((d) => d.status === 'Available').length;
-    const completedListings = donorStats?.completedDonations ?? donations.filter((d) => d.status === 'Completed').length;
-    const totalDonationsCount = donorStats?.totalDonations ?? donations.length;
-    const totalKg = donations
-      .filter((d) => d.status === 'Completed' || d.status === 'Delivered')
-      .reduce((acc, curr) => acc + (Number(curr.quantity) || 0), 0);
-    const mealsShared = Math.round(totalKg * 4) || (completedListings * 15);
-
-    return (
-      <div className="page-view">
-        <div className="page-header">
-          <div>
-            <h2>Donor Dashboard</h2>
-            <p>Welcome back, {user?.fullName}. Track your surplus food & impact.</p>
-          </div>
-          <button
-            className="btn btn-primary-custom"
-            style={{ width: 'auto' }}
-            onClick={() => navigate('/register-surplus')}
-          >
-            <i className="bi bi-plus-lg me-1"></i> Register Surplus
-          </button>
-        </div>
-
-        <div className="row g-3 mb-4">
-          <div className="col-6 col-md-3">
-            <div className="stat-card role-donor">
-              <div className="stat-icon">
-                <i className="bi bi-box-seam"></i>
-              </div>
-              <div className="stat-value">{activeListings}</div>
-              <div className="stat-label">Active Listings</div>
-            </div>
-          </div>
-          <div className="col-6 col-md-3">
-            <div className="stat-card role-donor">
-              <div className="stat-icon">
-                <i className="bi bi-check2-circle"></i>
-              </div>
-              <div className="stat-value">{completedListings}</div>
-              <div className="stat-label">Completed</div>
-            </div>
-          </div>
-          <div className="col-6 col-md-3">
-            <div className="stat-card role-donor">
-              <div className="stat-icon">
-                <i className="bi bi-people"></i>
-              </div>
-              <div className="stat-value">{mealsShared}</div>
-              <div className="stat-label">Meals Shared</div>
-            </div>
-          </div>
-          <div className="col-6 col-md-3">
-            <div className="stat-card role-donor">
-              <div className="stat-icon">
-                <i className="bi bi-leaf"></i>
-              </div>
-              <div className="stat-value">{totalKg} kg</div>
-              <div className="stat-label">Waste Prevented</div>
-            </div>
-          </div>
-        </div>
-
-        <div className="card-custom">
-          <div className="card-header">
-            <span>Recent Surplus Listings</span>
-            <span className="badge bg-light text-dark">{totalDonationsCount} Total</span>
-          </div>
-          <div className="card-body p-0">
-            {donations.length === 0 ? (
-              <div className="empty-state">
-                <i className="bi bi-box-seam"></i>
-                <h5>No donations listed yet</h5>
-                <p>Register your first surplus food listing to help those in need.</p>
-                <button
-                  className="btn btn-primary-custom"
-                  onClick={() => navigate('/register-surplus')}
-                >
-                  <i className="bi bi-plus-lg me-1"></i> Register Surplus
-                </button>
-              </div>
-            ) : (
-              <div className="table-responsive">
-                <table className="table table-custom mb-0">
-                  <thead>
-                    <tr>
-                      <th>Food</th>
-                      <th>Dept</th>
-                      <th>Qty</th>
-                      <th>Urgency</th>
-                      <th>Status</th>
-                      <th>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {donations.slice(0, 5).map((d) => (
-                      <tr key={d.donationId}>
-                        <td>
-                          <strong>{d.foodName}</strong>
-                          <br />
-                          <small className="text-muted">{d.foodCondition}</small>
-                        </td>
-                        <td>
-                          <span className="food-type-pill">{d.foodCategory}</span>
-                        </td>
-                        <td>
-                          {d.quantity} {d.unit}
-                        </td>
-                        <td>
-                          <UrgencyBadge score={d.urgencyScore} level={d.urgencyLevel} />
-                        </td>
-                        <td>
-                          <StatusBadge status={d.status} />
-                        </td>
-                        <td>
-                          <button
-                            className="btn btn-sm btn-outline-secondary"
-                            onClick={() => navigate('/my-donations')}
-                          >
-                            Details
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ==================== NGO DASHBOARD ====================
-  if (role === 'NGO') {
-    const availableDonations = donations.filter((d) => d.status === 'Available');
-    const highPriority = [...availableDonations]
-      .sort((a, b) => b.urgencyScore - a.urgencyScore)
-      .slice(0, 4);
-
-    const availableCount = ngoStats?.availableDonations ?? availableDonations.length;
-    const activeRequests = ngoStats?.acceptedDonations ?? donations.filter((d) => d.status === 'Accepted').length;
-    const completedCount = ngoStats?.myCompletedAssignments ?? donations.filter((d) => d.status === 'Completed').length;
-    const mealsServed = completedCount * 25 || 120;
-
-    return (
-      <div className="page-view">
-        <div className="page-header">
-          <div>
-            <h2>Recipient Dashboard</h2>
-            <p>Hello {user?.fullName}. Find surplus food matched for your needs.</p>
-          </div>
-          <button
-            className="btn btn-primary-custom"
-            style={{ width: 'auto' }}
-            onClick={() => navigate('/available-food')}
-          >
-            <i className="bi bi-search me-1"></i> Browse Available
-          </button>
-        </div>
-
-        <div className="row g-3 mb-4">
-          <div className="col-6 col-md-3">
-            <div className="stat-card role-ngo">
-              <div className="stat-icon">
-                <i className="bi bi-search"></i>
-              </div>
-              <div className="stat-value">{availableCount}</div>
-              <div className="stat-label">Available Now</div>
-            </div>
-          </div>
-          <div className="col-6 col-md-3">
-            <div className="stat-card role-ngo">
-              <div className="stat-icon">
-                <i className="bi bi-hand-thumbs-up"></i>
-              </div>
-              <div className="stat-value">{activeRequests}</div>
-              <div className="stat-label">Active Requests</div>
-            </div>
-          </div>
-          <div className="col-6 col-md-3">
-            <div className="stat-card role-ngo">
-              <div className="stat-icon">
-                <i className="bi bi-bag-check"></i>
-              </div>
-              <div className="stat-value">{completedCount}</div>
-              <div className="stat-label">Received</div>
-            </div>
-          </div>
-          <div className="col-6 col-md-3">
-            <div className="stat-card role-ngo">
-              <div className="stat-icon">
-                <i className="bi bi-heart"></i>
-              </div>
-              <div className="stat-value">{mealsServed}+</div>
-              <div className="stat-label">Meals Served</div>
-            </div>
-          </div>
-        </div>
-
-        <div className="row g-3">
-          <div className="col-lg-7">
-            <div className="card-custom h-100">
-              <div className="card-header">
-                <span>High Priority Matches</span>
-                <span className="badge bg-light text-dark">Rule-based AI</span>
-              </div>
-              <div className="card-body p-0">
-                {highPriority.length === 0 ? (
-                  <div className="empty-state py-4">
-                    <i className="bi bi-inbox"></i>
-                    <p>No available food listings at the moment.</p>
-                  </div>
-                ) : (
-                  <div className="table-responsive">
-                    <table className="table table-custom mb-0">
-                      <thead>
-                        <tr>
-                          <th>Food</th>
-                          <th>Location / Address</th>
-                          <th>Urgency</th>
-                          <th>Action</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {highPriority.map((d) => (
-                          <tr key={d.donationId}>
-                            <td>
-                              <strong>{d.foodName}</strong>
-                              <br />
-                              <small>
-                                {d.quantity} {d.unit} · {d.foodCategory}
-                              </small>
-                            </td>
-                            <td>
-                              <small className="text-muted">{d.pickupAddress}</small>
-                            </td>
-                            <td>
-                              <UrgencyBadge score={d.urgencyScore} level={d.urgencyLevel} />
-                            </td>
-                            <td>
-                              <button
-                                className="btn btn-sm btn-primary-custom"
-                                style={{ width: 'auto', padding: '0.35rem 0.8rem' }}
-                                onClick={() => handleNgoRequest(d.donationId)}
-                                disabled={actionLoadingId === d.donationId}
-                              >
-                                {actionLoadingId === d.donationId ? (
-                                  <span className="spinner-border spinner-border-sm"></span>
-                                ) : (
-                                  'Request'
-                                )}
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="col-lg-5">
-            <div className="card-custom h-100">
-              <div className="card-header">Your Preferences & AI Rules</div>
-              <div className="card-body">
-                <p className="mb-2" style={{ fontSize: '0.9rem', color: '#64748b' }}>
-                  Matches prioritized by time to expiry, storage type, and quantity:
-                </p>
-                <div className="d-flex flex-wrap gap-2 mb-3">
-                  <span className="food-type-pill">Perishable</span>
-                  <span className="food-type-pill">Cooked Meals</span>
-                  <span className="food-type-pill">Dry Rations</span>
-                  <span className="food-type-pill">Bakery / Bread</span>
-                  <span className="food-type-pill">Warehouse Storage</span>
-                </div>
-                <div className="alert alert-info py-2" style={{ fontSize: '0.85rem' }}>
-                  <i className="bi bi-shield-check me-1"></i> Human approval required before assigning volunteers.
-                </div>
-                <button
-                  className="btn btn-outline-secondary btn-sm"
-                  onClick={() => navigate('/available-food')}
-                >
-                  Browse Full Food Inventory
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ==================== VOLUNTEER DASHBOARD ====================
-  if (role === 'Volunteer') {
-    const totalAssignments = volunteerStats?.totalAssignments ?? assignments.length;
-    const pendingPickups = volunteerStats?.pendingPickups ?? assignments.filter((a) => a.status === 'Assigned').length;
-    const completedAssignments = volunteerStats?.completedAssignments ?? assignments.filter((a) => a.status === 'Completed').length;
-    const activeTasks = assignments.filter((a) => a.status === 'Assigned' || a.status === 'PickedUp');
-
-    return (
-      <div className="page-view">
-        <div className="page-header">
-          <div>
-            <h2>Volunteer Dashboard</h2>
-            <p>Hi {user?.fullName}. Help move surplus food to those who need it.</p>
-          </div>
-          <button
-            className="btn btn-primary-custom"
-            style={{ width: 'auto' }}
-            onClick={() => navigate('/pickup-tasks')}
-          >
-            <i className="bi bi-truck me-1"></i> View Tasks
-          </button>
-        </div>
-
-        <div className="row g-3 mb-4">
-          <div className="col-6 col-md-3">
-            <div className="stat-card role-volunteer">
-              <div className="stat-icon">
-                <i className="bi bi-list-task"></i>
-              </div>
-              <div className="stat-value">{pendingPickups}</div>
-              <div className="stat-label">Pending Pickups</div>
-            </div>
-          </div>
-          <div className="col-6 col-md-3">
-            <div className="stat-card role-volunteer">
-              <div className="stat-icon">
-                <i className="bi bi-truck"></i>
-              </div>
-              <div className="stat-value">{activeTasks.length}</div>
-              <div className="stat-label">My Active Tasks</div>
-            </div>
-          </div>
-          <div className="col-6 col-md-3">
-            <div className="stat-card role-volunteer">
-              <div className="stat-icon">
-                <i className="bi bi-check2-all"></i>
-              </div>
-              <div className="stat-value">{completedAssignments}</div>
-              <div className="stat-label">Completed</div>
-            </div>
-          </div>
-          <div className="col-6 col-md-3">
-            <div className="stat-card role-volunteer">
-              <div className="stat-icon">
-                <i className="bi bi-star"></i>
-              </div>
-              <div className="stat-value">5.0</div>
-              <div className="stat-label">Rating</div>
-            </div>
-          </div>
-        </div>
-
-        <div className="card-custom">
-          <div className="card-header">
-            <span>My Active Deliveries</span>
-            <span className="badge bg-light text-dark">{activeTasks.length} In Progress</span>
-          </div>
-          <div className="card-body p-0">
-            {activeTasks.length === 0 ? (
-              <div className="empty-state py-4">
-                <i className="bi bi-check-circle"></i>
-                <h5>No pending pickups right now</h5>
-                <p>Check the Pickup Tasks page or await new task assignments from NGOs.</p>
-                <button
-                  className="btn btn-outline-secondary btn-sm"
-                  onClick={() => navigate('/pickup-tasks')}
-                >
-                  View All Tasks
-                </button>
-              </div>
-            ) : (
-              <div className="table-responsive">
-                <table className="table table-custom mb-0">
-                  <thead>
-                    <tr>
-                      <th>Assignment ID</th>
-                      <th>Donation ID</th>
-                      <th>Status</th>
-                      <th>Assigned At</th>
-                      <th>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {activeTasks.map((task) => (
-                      <tr key={task.assignmentId}>
-                        <td>#{task.assignmentId}</td>
-                        <td>
-                          <strong>Donation #{task.donationId}</strong>
-                        </td>
-                        <td>
-                          <StatusBadge status={task.status} />
-                        </td>
-                        <td>
-                          <small className="text-muted">
-                            {new Date(task.assignedAt).toLocaleString()}
-                          </small>
-                        </td>
-                        <td>
-                          {task.status === 'Assigned' && (
-                            <button
-                              className="btn btn-sm btn-primary-custom"
-                              style={{ width: 'auto', padding: '0.3rem 0.75rem' }}
-                              onClick={() => handleVolunteerPickup(task.assignmentId)}
-                              disabled={actionLoadingId === task.assignmentId}
-                            >
-                              {actionLoadingId === task.assignmentId ? 'Updating...' : 'Confirm Pickup'}
-                            </button>
-                          )}
-                          {task.status === 'PickedUp' && (
-                            <button
-                              className="btn btn-sm btn-success"
-                              style={{ width: 'auto', padding: '0.3rem 0.75rem' }}
-                              onClick={() => handleVolunteerDeliver(task.assignmentId)}
-                              disabled={actionLoadingId === task.assignmentId}
-                            >
-                              {actionLoadingId === task.assignmentId ? 'Updating...' : 'Confirm Delivery'}
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ==================== ADMIN DASHBOARD ====================
-  const totalListings = donations.length;
-  const availableCount = donations.filter((d) => d.status === 'Available').length;
-  const completedCount = donations.filter((d) => d.status === 'Completed').length;
-  const totalKgSaved = donations
-    .filter((d) => d.status === 'Completed' || d.status === 'Delivered')
-    .reduce((acc, curr) => acc + (Number(curr.quantity) || 0), 0);
+  const recentDonations = [...relevantDonations]
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 5);
 
   return (
-    <div className="page-view">
-      <div className="page-header">
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2>Admin Overview</h2>
-          <p>System health, redistribution metrics & AI matching control.</p>
+          <h1 className="text-2xl font-bold text-slate-900">{user?.role} Dashboard</h1>
+          <p className="text-sm text-slate-500">Live overview of food rescue operations and urgency metrics.</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={loadData}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-sm font-medium text-slate-700"
+          >
+            <RefreshCw className="w-4 h-4" />
+            <span>Refresh</span>
+          </button>
+          {user?.role === 'Donor' && (
+            <Link
+              to="/donations/create"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold"
+            >
+              <PlusCircle className="w-4 h-4" />
+              <span>New Donation</span>
+            </Link>
+          )}
         </div>
       </div>
 
-      <div className="row g-3 mb-4">
-        <div className="col-6 col-md-3">
-          <div className="stat-card role-admin">
-            <div className="stat-icon">
-              <i className="bi bi-box-seam"></i>
-            </div>
-            <div className="stat-value">{totalListings}</div>
-            <div className="stat-label">Total Listings</div>
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
+        <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs">
+          <div className="flex items-center justify-between text-slate-500 text-xs font-medium">
+            <span>Total Donations</span>
+            <Package className="w-4 h-4 text-emerald-600" />
           </div>
+          <div className="text-2xl font-bold text-slate-900 mt-2">{totalCount}</div>
         </div>
-        <div className="col-6 col-md-3">
-          <div className="stat-card role-admin">
-            <div className="stat-icon">
-              <i className="bi bi-search"></i>
-            </div>
-            <div className="stat-value">{availableCount}</div>
-            <div className="stat-label">Available Now</div>
+        <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs">
+          <div className="flex items-center justify-between text-slate-500 text-xs font-medium">
+            <span>Available</span>
+            <Package className="w-4 h-4 text-sky-600" />
           </div>
+          <div className="text-2xl font-bold text-slate-900 mt-2">{availableCount}</div>
         </div>
-        <div className="col-6 col-md-3">
-          <div className="stat-card role-admin">
-            <div className="stat-icon">
-              <i className="bi bi-check2-all"></i>
-            </div>
-            <div className="stat-value">{completedCount}</div>
-            <div className="stat-label">Completed Deliveries</div>
+        <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs">
+          <div className="flex items-center justify-between text-slate-500 text-xs font-medium">
+            <span>Accepted</span>
+            <CheckCircle2 className="w-4 h-4 text-indigo-600" />
           </div>
+          <div className="text-2xl font-bold text-slate-900 mt-2">{acceptedCount}</div>
         </div>
-        <div className="col-6 col-md-3">
-          <div className="stat-card role-admin">
-            <div className="stat-icon">
-              <i className="bi bi-leaf"></i>
-            </div>
-            <div className="stat-value">{totalKgSaved} kg</div>
-            <div className="stat-label">Food Saved</div>
+        <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs">
+          <div className="flex items-center justify-between text-slate-500 text-xs font-medium">
+            <span>Completed</span>
+            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
           </div>
+          <div className="text-2xl font-bold text-emerald-700 mt-2">{completedCount}</div>
+        </div>
+        <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs">
+          <div className="flex items-center justify-between text-slate-500 text-xs font-medium">
+            <span>Urgent</span>
+            <Flame className="w-4 h-4 text-orange-600" />
+          </div>
+          <div className="text-2xl font-bold text-orange-600 mt-2">{urgentCount}</div>
+        </div>
+        <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs">
+          <div className="flex items-center justify-between text-slate-500 text-xs font-medium">
+            <span>Food Rescued</span>
+            <Scale className="w-4 h-4 text-emerald-600" />
+          </div>
+          <div className="text-2xl font-bold text-emerald-700 mt-2">{totalFoodRescued}</div>
         </div>
       </div>
 
-      <div className="row g-3">
-        <div className="col-lg-8">
-          <div className="card-custom">
-            <div className="card-header">
-              <span>Live Donation Feed</span>
-              <button
-                className="btn btn-sm btn-outline-secondary"
-                onClick={() => navigate('/all-donations')}
-              >
-                View All
-              </button>
-            </div>
-            <div className="card-body p-0">
-              {donations.length === 0 ? (
-                <div className="empty-state py-4">
-                  <i className="bi bi-inbox"></i>
-                  <p>No donations recorded in database yet.</p>
-                </div>
-              ) : (
-                <div className="table-responsive">
-                  <table className="table table-custom mb-0">
-                    <thead>
-                      <tr>
-                        <th>ID</th>
-                        <th>Food</th>
-                        <th>Category</th>
-                        <th>Qty</th>
-                        <th>Urgency</th>
-                        <th>Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {donations.slice(0, 6).map((d) => (
-                        <tr key={d.donationId}>
-                          <td>#{d.donationId}</td>
-                          <td>
-                            <strong>{d.foodName}</strong>
-                          </td>
-                          <td>
-                            <span className="food-type-pill">{d.foodCategory}</span>
-                          </td>
-                          <td>
-                            {d.quantity} {d.unit}
-                          </td>
-                          <td>
-                            <UrgencyBadge score={d.urgencyScore} level={d.urgencyLevel} />
-                          </td>
-                          <td>
-                            <StatusBadge status={d.status} />
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
+      {/* Role-Specific Backend Summary */}
+      {roleStats && (
+        <div className="bg-emerald-50/70 border border-emerald-200 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3 text-xs text-emerald-900">
+          <span className="font-semibold">Live {user?.role} Endpoint Metrics:</span>
+          <div className="flex flex-wrap gap-4">
+            {Object.entries(roleStats).map(([key, val]) => (
+              <span key={key}>
+                <span className="capitalize">{key.replace(/([A-Z])/g, ' $1')}:</span>{' '}
+                <strong>{String(val)}</strong>
+              </span>
+            ))}
           </div>
         </div>
+      )}
 
-        <div className="col-lg-4">
-          <div className="card-custom mb-3">
-            <div className="card-header">AI Urgency Engine</div>
-            <div className="card-body">
-              <p style={{ fontSize: '0.9rem', color: '#64748b' }}>
-                Backend rule-based scoring parameters:
-              </p>
-              <ul style={{ fontSize: '0.88rem', paddingLeft: '1.1rem', color: '#334155' }}>
-                <li>Time to expiry: &le; 2h (+50), &le; 6h (+40), &le; 12h (+30)</li>
-                <li>Food condition: perishable/leftover (+25-30)</li>
-                <li>Quantity threshold: &gt; 20kg (+20 pts)</li>
-                <li>Expired or unsafe: 0 pts (Ineligible)</li>
-              </ul>
-              <div className="alert alert-success py-2 mb-0" style={{ fontSize: '0.85rem' }}>
-                <i className="bi bi-shield-check me-1"></i> Human approval always required
+      {user?.role === 'Admin' && roleStats && 'totalUsers' in roleStats && (
+        <div className="space-y-3">
+          <h2 className="font-semibold text-slate-900">User and Assignment Overview</h2>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {[
+              ['Total Users', roleStats.totalUsers],
+              ['Active Users', roleStats.activeUsers],
+              ['Inactive Users', roleStats.inactiveUsers],
+              ['Donors', roleStats.totalDonors],
+              ['NGOs', roleStats.totalNGOs],
+              ['Volunteers', roleStats.totalVolunteers],
+              ['Administrators', roleStats.totalAdmins],
+              ['Total Assignments', roleStats.totalAssignments],
+              ['Active Assignments', roleStats.activeAssignments],
+              ['Completed Assignments', roleStats.completedAssignments]
+            ].map(([label, value]) => (
+              <div key={label} className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs">
+                <div className="text-xs font-medium text-slate-500">{label}</div>
+                <div className="text-2xl font-bold text-slate-900 mt-2">{value}</div>
               </div>
-            </div>
-          </div>
-
-          <div className="card-custom">
-            <div className="card-header">Quick Actions</div>
-            <div className="card-body d-grid gap-2">
-              <button
-                className="btn btn-outline-primary btn-sm"
-                onClick={() => navigate('/matching')}
-              >
-                Run Matching Engine
-              </button>
-              <button
-                className="btn btn-outline-secondary btn-sm"
-                onClick={() => navigate('/users')}
-              >
-                User Directory
-              </button>
-              <button
-                className="btn btn-outline-secondary btn-sm"
-                onClick={() => navigate('/impact')}
-              >
-                Full Impact Report
-              </button>
-            </div>
+            ))}
           </div>
         </div>
+      )}
+
+      {/* Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
+          <h2 className="font-semibold text-slate-900 mb-4">Donation Status Distribution</h2>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={statusData}>
+                <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
+                <Tooltip />
+                <Bar dataKey="count" fill="#16a34a" radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
+          <h2 className="font-semibold text-slate-900 mb-4">Urgency Level Distribution</h2>
+          <div className="h-64">
+            {urgencyData.length === 0 ? (
+              <div className="h-full flex items-center justify-center text-sm text-slate-400">No urgency data yet.</div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={urgencyData} dataKey="value" nameKey="name" innerRadius={55} outerRadius={85} paddingAngle={4}>
+                    {urgencyData.map((entry) => (
+                      <Cell key={entry.name} fill={URGENCY_COLORS[entry.name] || '#64748b'} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Recent Donations */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-semibold text-slate-900">Recent Donations &amp; Activity</h2>
+          <Link to="/donations" className="text-sm font-semibold text-emerald-600 hover:text-emerald-700">
+            View all
+          </Link>
+        </div>
+        {recentDonations.length === 0 ? (
+          <EmptyState title="No donations yet" description="Donations registered in the system will appear here." />
+        ) : (
+          <div className="divide-y divide-slate-100">
+            {recentDonations.map((d) => (
+              <Link
+                key={d.donationId}
+                to={`/donations/${d.donationId}`}
+                className="py-3 flex flex-wrap items-center justify-between gap-3 hover:bg-slate-50 px-2 rounded-xl transition"
+              >
+                <div>
+                  <div className="font-semibold text-sm text-slate-900">
+                    #{d.donationId} · {d.foodName}
+                  </div>
+                  <div className="text-xs text-slate-500">
+                    {d.quantity} {d.unit} · {d.foodCategory} · {d.pickupAddress}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <UrgencyBadge level={d.urgencyLevel} score={d.urgencyScore} />
+                  <StatusBadge status={d.status} />
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
