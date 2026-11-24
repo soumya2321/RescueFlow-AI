@@ -1,0 +1,63 @@
+
+name: RescueFlow AI - CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend - ASP.NET Core
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore RescueFlow.API/RescueFlow.API.csproj
+
+      - name: Build backend
+        run: dotnet build RescueFlow.API/RescueFlow.API.csproj --configuration Release --no-restore
+
+      - name: Check NuGet vulnerabilities
+        run: dotnet package list --project RescueFlow.API/RescueFlow.API.csproj --vulnerable --include-transitive
+
+  frontend:
+    name: Frontend - React TypeScript
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: Security audit
+        run: npm audit --audit-level=high
