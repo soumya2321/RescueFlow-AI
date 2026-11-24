@@ -1,6 +1,7 @@
 import { apiClient } from './client';
 import type {
   AuthResponse,
+  AvailableTask,
   CreateDonationRequest,
   Donation,
   DonationStatus,
@@ -11,7 +12,8 @@ import type {
   UrgencyResult,
   UserProfile,
   VolunteerAssignment,
-  VolunteerDashboardStats
+  VolunteerDashboardStats,
+  VolunteerUser
 } from '../types';
 
 export const authApi = {
@@ -39,8 +41,8 @@ export const donationsApi = {
       const { data } = await apiClient.get<Donation>(`/api/donations/${id}`);
       return data;
     } catch {
-      // Backend GetDonationById currently returns 400 for non-Available donations;
-      // fall back to full list so accepted/assigned/completed details remain viewable.
+      // Backend GetDonationById returns 400 for non-Available donations;
+      // fall back to full list so accepted/assigned/completed details remain accessible.
       const all = await donationsApi.getAll();
       const found = all.find((d) => d.donationId === id);
       if (!found) throw new Error('Donation not found.');
@@ -70,6 +72,20 @@ export const donationsApi = {
 };
 
 export const assignmentsApi = {
+  getAvailableTasks: async (): Promise<AvailableTask[]> => {
+    const { data } = await apiClient.get<AvailableTask[]>('/api/volunteer-assignments/available-tasks');
+    return data;
+  },
+  takeTask: async (donationId: number): Promise<VolunteerAssignment> => {
+    const { data } = await apiClient.post<VolunteerAssignment>('/api/volunteer-assignments/take-task', {
+      donationId
+    });
+    return data;
+  },
+  getActiveVolunteers: async (): Promise<VolunteerUser[]> => {
+    const { data } = await apiClient.get<VolunteerUser[]>('/api/volunteer-assignments/volunteers');
+    return data;
+  },
   assignVolunteer: async (donationId: number, volunteerId: number): Promise<VolunteerAssignment> => {
     const { data } = await apiClient.post<VolunteerAssignment>('/api/volunteer-assignments', {
       donationId,

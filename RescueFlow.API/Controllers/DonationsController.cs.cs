@@ -1,4 +1,4 @@
-﻿
+
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RescueFlow.API.Data;
@@ -33,6 +33,14 @@ namespace RescueFlow.API.Controllers
             "Expired",
             "Rejected",
             "Failed"
+        };
+
+        private static readonly string[] ValidFoodConditions =
+        {
+            "Fresh",
+            "Near Expiry",
+            "Leftover",
+            "Packed"
         };
 
         // GET: api/donations
@@ -102,6 +110,20 @@ namespace RescueFlow.API.Controllers
             if (string.IsNullOrWhiteSpace(donation.StorageType))
                 return BadRequest("Storage type is required.");
 
+            if (string.IsNullOrWhiteSpace(donation.FoodCondition))
+                return BadRequest("Food condition is required.");
+
+            var validCondition = ValidFoodConditions.FirstOrDefault(
+                c => c.Equals(donation.FoodCondition.Trim(), StringComparison.OrdinalIgnoreCase));
+
+            if (validCondition == null)
+            {
+                return BadRequest(
+                    "Invalid food condition. Accepted values are: Fresh, Packed, Leftover, Near Expiry.");
+            }
+
+            donation.FoodCondition = validCondition;
+
             // DonorId must reference an existing Users.UserId.
             // The database enforces this foreign key.
             // Donor role validation should be added with authentication.
@@ -127,7 +149,15 @@ namespace RescueFlow.API.Controllers
             donation.UrgencyLevel = urgency.Level;
 
             _context.Donations.Add(donation);
-            await _context.SaveChangesAsync();
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateException)
+            {
+                return BadRequest("Unable to save donation due to invalid data.");
+            }
 
             return CreatedAtAction(
                 nameof(GetDonationById),
@@ -176,11 +206,23 @@ namespace RescueFlow.API.Controllers
             if (string.IsNullOrWhiteSpace(updatedDonation.StorageType))
                 return BadRequest("Storage type is required.");
 
+            if (string.IsNullOrWhiteSpace(updatedDonation.FoodCondition))
+                return BadRequest("Food condition is required.");
+
+            var validUpdatedCondition = ValidFoodConditions.FirstOrDefault(
+                c => c.Equals(updatedDonation.FoodCondition.Trim(), StringComparison.OrdinalIgnoreCase));
+
+            if (validUpdatedCondition == null)
+            {
+                return BadRequest(
+                    "Invalid food condition. Accepted values are: Fresh, Packed, Leftover, Near Expiry.");
+            }
+
             donation.FoodName = updatedDonation.FoodName;
             donation.FoodCategory = updatedDonation.FoodCategory;
             donation.Quantity = updatedDonation.Quantity;
             donation.Unit = updatedDonation.Unit;
-            donation.FoodCondition = updatedDonation.FoodCondition;
+            donation.FoodCondition = validUpdatedCondition;
             donation.StorageType = updatedDonation.StorageType;
             donation.PickupDeadline = updatedDonation.PickupDeadline;
             donation.PickupAddress = updatedDonation.PickupAddress;
@@ -194,7 +236,14 @@ namespace RescueFlow.API.Controllers
             donation.UrgencyScore = urgency.Score;
             donation.UrgencyLevel = urgency.Level;
 
-            await _context.SaveChangesAsync();
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateException)
+            {
+                return BadRequest("Unable to update donation due to invalid data.");
+            }
 
             return Ok(donation);
         }
@@ -341,6 +390,11 @@ namespace RescueFlow.API.Controllers
                 return BadRequest(
                     "Donation has a volunteer assignment. " +
                     "Use the Volunteer Assignment workflow.");
+            }
+
+            if (validStatus == "Accepted")
+            {
+                donation.RecipientNgoId = userId;
             }
 
             donation.Status = validStatus;

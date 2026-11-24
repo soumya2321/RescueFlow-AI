@@ -1,5 +1,4 @@
 import React from 'react';
-import { AlertTriangle, X } from 'lucide-react';
 
 interface ConfirmModalProps {
   open: boolean;
@@ -27,39 +26,69 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full p-6 space-y-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${danger ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'}`}>
-              <AlertTriangle className="w-5 h-5" />
+    <div
+      className="modal fade show d-block"
+      tabIndex={-1}
+      style={{ backgroundColor: 'rgba(0, 0, 0, 0.45)', backdropFilter: 'blur(3px)', zIndex: 1050 }}
+    >
+      <div className="modal-dialog modal-dialog-centered">
+        <div className="modal-content" style={{ borderRadius: '1.25rem', border: 'none', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
+          <div className="modal-header border-0 pb-0 pt-4 px-4">
+            <div className="d-flex align-items-center gap-2">
+              <div
+                style={{
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '0.75rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: danger ? '#fee2e2' : '#ccfbf1',
+                  color: danger ? '#b91c1c' : '#0d9488'
+                }}
+              >
+                <i className={`bi ${danger ? 'bi-exclamation-triangle-fill' : 'bi-question-circle-fill'} fs-5`}></i>
+              </div>
+              <h5 className="modal-title fw-bold" style={{ color: '#0f766e', fontSize: '1.15rem' }}>{title}</h5>
             </div>
-            <h3 className="text-base font-semibold text-slate-900">{title}</h3>
+            <button
+              type="button"
+              className="btn-close"
+              aria-label="Close"
+              onClick={onCancel}
+              disabled={loading}
+            ></button>
           </div>
-          <button onClick={onCancel} className="text-slate-400 hover:text-slate-600">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-        <p className="text-sm text-slate-600 leading-relaxed">{message}</p>
-        <div className="flex items-center justify-end gap-2 pt-2">
-          <button
-            type="button"
-            disabled={loading}
-            onClick={onCancel}
-            className="px-4 py-2 rounded-xl border border-slate-300 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
-          >
-            {cancelLabel}
-          </button>
-          <button
-            type="button"
-            disabled={loading}
-            onClick={onConfirm}
-            className={`px-4 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 ${
-              danger ? 'bg-rose-600 hover:bg-rose-700' : 'bg-emerald-600 hover:bg-emerald-700'
-            }`}
-          >
-            {loading ? 'Processing...' : confirmLabel}
-          </button>
+          <div className="modal-body px-4 py-3" style={{ color: '#475569', fontSize: '0.92rem', lineHeight: '1.5' }}>
+            {message}
+          </div>
+          <div className="modal-footer border-0 px-4 pb-4 pt-1 gap-2">
+            <button
+              type="button"
+              className="btn btn-light"
+              style={{ borderRadius: '0.65rem', fontWeight: 500 }}
+              onClick={onCancel}
+              disabled={loading}
+            >
+              {cancelLabel}
+            </button>
+            <button
+              type="button"
+              className={`btn ${danger ? 'btn-danger' : 'btn-primary-custom'}`}
+              style={{ borderRadius: '0.65rem', fontWeight: 600, padding: '0.5rem 1.25rem' }}
+              onClick={onConfirm}
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                  Processing...
+                </>
+              ) : (
+                confirmLabel
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>

@@ -1,26 +1,12 @@
 import React, { useState } from 'react';
-import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
-import {
-  CheckCircle2,
-  ClipboardList,
-  Flame,
-  LayoutDashboard,
-  LogOut,
-  Menu,
-  Package,
-  PlusCircle,
-  Sprout,
-  User as UserIcon,
-  X
-} from 'lucide-react';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import type { UserRole } from '../types';
 
 interface NavItem {
   to: string;
   label: string;
-  icon: React.ReactNode;
-  roles?: UserRole[];
+  icon: string;
 }
 
 export const Layout: React.FC = () => {
@@ -28,144 +14,148 @@ export const Layout: React.FC = () => {
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const navItems: NavItem[] = [
-    { to: '/dashboard', label: 'Dashboard', icon: <LayoutDashboard className="w-4 h-4" /> },
-    { to: '/donations', label: 'All Donations', icon: <Package className="w-4 h-4" /> },
-    {
-      to: '/donations/create',
-      label: 'Create Donation',
-      icon: <PlusCircle className="w-4 h-4" />,
-      roles: ['Donor']
-    },
-    { to: '/urgency-ranking', label: 'AI Urgency Ranking', icon: <Flame className="w-4 h-4" /> },
-    {
-      to: '/available-donations',
-      label: 'Available Donations',
-      icon: <Package className="w-4 h-4" />,
-      roles: ['NGO', 'Admin']
-    },
-    {
-      to: '/accepted-donations',
-      label: 'Accepted Donations',
-      icon: <CheckCircle2 className="w-4 h-4" />,
-      roles: ['NGO', 'Admin']
-    },
-    {
-      to: '/assigned-tasks',
-      label: 'Assigned Tasks',
-      icon: <ClipboardList className="w-4 h-4" />,
-      roles: ['Volunteer']
-    },
-    { to: '/profile', label: 'Profile & Settings', icon: <UserIcon className="w-4 h-4" /> }
-  ];
+  const role = user?.role as UserRole | undefined;
 
-  const visibleItems = navItems.filter((item) => !item.roles || (user && item.roles.includes(user.role)));
+  const getNavLinks = (): NavItem[] => {
+    switch (role) {
+      case 'Donor':
+        return [
+          { to: '/dashboard', label: 'Dashboard', icon: 'bi-speedometer2' },
+          { to: '/register-surplus', label: 'Register Surplus', icon: 'bi-plus-circle' },
+          { to: '/my-donations', label: 'My Donations', icon: 'bi-box-seam' },
+          { to: '/impact', label: 'My Impact', icon: 'bi-graph-up-arrow' }
+        ];
+      case 'NGO':
+        return [
+          { to: '/dashboard', label: 'Dashboard', icon: 'bi-speedometer2' },
+          { to: '/available-food', label: 'Available Food', icon: 'bi-search' },
+          { to: '/my-requests', label: 'My Requests', icon: 'bi-hand-thumbs-up' },
+          { to: '/impact', label: 'Impact', icon: 'bi-graph-up-arrow' }
+        ];
+      case 'Volunteer':
+        return [
+          { to: '/dashboard', label: 'Dashboard', icon: 'bi-speedometer2' },
+          { to: '/pickup-tasks', label: 'Pickup Tasks', icon: 'bi-truck' },
+          { to: '/my-tasks', label: 'My Tasks', icon: 'bi-clipboard-check' },
+          { to: '/impact', label: 'My Contribution', icon: 'bi-graph-up-arrow' }
+        ];
+      case 'Admin':
+        return [
+          { to: '/dashboard', label: 'Overview', icon: 'bi-speedometer2' },
+          { to: '/all-donations', label: 'All Donations', icon: 'bi-box-seam' },
+          { to: '/users', label: 'Users & Roles', icon: 'bi-people' },
+          { to: '/matching', label: 'Matching Engine', icon: 'bi-diagram-3' },
+          { to: '/impact', label: 'Impact Metrics', icon: 'bi-bar-chart-line' }
+        ];
+      default:
+        return [{ to: '/dashboard', label: 'Dashboard', icon: 'bi-speedometer2' }];
+    }
+  };
+
+  const roleLabel = (r?: UserRole): string => {
+    switch (r) {
+      case 'Donor':
+        return 'Food Donor';
+      case 'NGO':
+        return 'NGO / Recipient';
+      case 'Volunteer':
+        return 'Volunteer';
+      case 'Admin':
+        return 'Administrator';
+      default:
+        return r || 'User';
+    }
+  };
 
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
 
-  const renderLinks = (onClick?: () => void) =>
-    visibleItems.map((item) => (
-      <NavLink
-        key={item.to}
-        to={item.to}
-        onClick={onClick}
-        className={({ isActive }) =>
-          `flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition ${
-            isActive
-              ? 'bg-emerald-600 text-white shadow-sm'
-              : 'text-slate-600 hover:bg-emerald-50 hover:text-emerald-800'
-          }`
-        }
-      >
-        {item.icon}
-        <span>{item.label}</span>
-      </NavLink>
-    ));
+  const initial = user?.fullName ? user.fullName.charAt(0).toUpperCase() : 'U';
 
   return (
-    <div className="min-h-screen flex bg-slate-50">
-      {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 bg-white border-r border-slate-200">
-        <div className="p-5 border-b border-slate-100">
-          <Link to="/" className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-sm">
-              <Sprout className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="font-bold text-slate-900 leading-tight">RescueFlow AI</div>
-              <div className="text-[11px] font-medium text-emerald-700">Food Rescue Platform</div>
-            </div>
-          </Link>
+    <div className="app-shell">
+      {/* Mobile Backdrop */}
+      {mobileOpen && (
+        <div
+          className="sidebar-backdrop"
+          onClick={() => setMobileOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside className={`sidebar ${mobileOpen ? 'open' : ''}`} id="sidebar">
+        <div className="sidebar-brand">
+          <div className="logo-icon">
+            <i className="bi bi-heart-pulse-fill"></i>
+          </div>
+          <div>
+            <h5>RescueFlow AI</h5>
+            <small>VisionQuad</small>
+          </div>
         </div>
 
-        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">{renderLinks()}</nav>
+        <nav className="nav-section">
+          {getNavLinks().map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.to === '/dashboard'}
+              onClick={() => setMobileOpen(false)}
+              className={({ isActive }) =>
+                `nav-link-custom ${isActive ? 'active' : ''}`
+              }
+            >
+              <i className={`bi ${item.icon}`}></i> {item.label}
+            </NavLink>
+          ))}
+        </nav>
 
-        <div className="p-4 border-t border-slate-100 space-y-3">
-          <div className="px-3 py-2 rounded-xl bg-emerald-50/70 border border-emerald-100">
-            <div className="text-xs font-semibold text-slate-900 truncate">{user?.fullName}</div>
-            <div className="text-[11px] text-emerald-700 font-medium">{user?.role}</div>
+        <div className="sidebar-footer">
+          <div className="user-info">
+            <div className="user-avatar">{initial}</div>
+            <div style={{ overflow: 'hidden' }}>
+              <div
+                className="name text-truncate"
+                style={{ maxWidth: '170px' }}
+                title={user?.fullName || ''}
+              >
+                {user?.fullName || 'User'}
+              </div>
+              <div className="role">{roleLabel(user?.role)}</div>
+            </div>
           </div>
           <button
+            type="button"
+            className="btn btn-sm w-100 d-flex align-items-center justify-content-center gap-2"
+            style={{
+              background: 'rgba(255,255,255,0.12)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '0.6rem',
+              padding: '0.45rem'
+            }}
             onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-sm font-medium text-rose-700 hover:bg-rose-50 transition"
           >
-            <LogOut className="w-4 h-4" />
-            <span>Sign out</span>
+            <i className="bi bi-box-arrow-right"></i> Logout
           </button>
         </div>
       </aside>
 
-      {/* Mobile Header + Drawer */}
-      <div className="flex-1 lg:pl-64 flex flex-col min-w-0">
-        <header className="lg:hidden sticky top-0 z-30 bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center">
-              <Sprout className="w-4 h-4" />
-            </div>
-            <span className="font-bold text-slate-900">RescueFlow AI</span>
-          </Link>
-          <button
-            onClick={() => setMobileOpen(!mobileOpen)}
-            className="p-2 rounded-lg text-slate-600 hover:bg-slate-100"
-            aria-label="Toggle Menu"
-          >
-            {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
-        </header>
+      {/* Main Content */}
+      <main className="main-content">
+        <Outlet />
+      </main>
 
-        {mobileOpen && (
-          <div className="lg:hidden fixed inset-0 z-40 bg-slate-900/40" onClick={() => setMobileOpen(false)}>
-            <div
-              className="w-72 bg-white h-full p-4 flex flex-col justify-between shadow-xl"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="space-y-4">
-                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                  <span className="font-bold text-slate-900">Navigation</span>
-                  <button onClick={() => setMobileOpen(false)} className="p-1 text-slate-500">
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
-                <nav className="space-y-1">{renderLinks(() => setMobileOpen(false))}</nav>
-              </div>
-              <button
-                onClick={handleLogout}
-                className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium text-rose-700 bg-rose-50"
-              >
-                <LogOut className="w-4 h-4" />
-                <span>Sign out</span>
-              </button>
-            </div>
-          </div>
-        )}
-
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
-          <Outlet />
-        </main>
-      </div>
+      {/* Mobile Toggle Button */}
+      <button
+        className="mobile-toggle"
+        onClick={() => setMobileOpen(!mobileOpen)}
+        aria-label="Toggle menu"
+      >
+        <i className={`bi ${mobileOpen ? 'bi-x-lg' : 'bi-list'}`}></i>
+      </button>
     </div>
   );
 };
