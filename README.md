@@ -61,7 +61,7 @@ NGOs are matched based on:
 | Framework | .NET 10 |
 | Database | SQL Server 2025 |
 | ORM | Entity Framework Core |
-| Frontend | HTML, CSS, JavaScript, Bootstrap |
+| Frontend | React 18, TypeScript, Vite, Tailwind CSS |
 | API Testing | Swagger, Postman |
 | Version Control | Git, GitHub |
 | IDE / Development Tools | Visual Studio, Antigravity |
@@ -93,10 +93,11 @@ RescueFlow AI is developed collaboratively by a four-member team.
 ### Prerequisites
 
 - .NET 10 SDK
+- Node.js (v18+) & npm
 - SQL Server 2025
 - SQL Server Management Studio (SSMS)
 - Git
-- Visual Studio or another compatible IDE
+- Visual Studio / VS Code or another compatible IDE
 
 ### Clone the Repository
 
@@ -109,7 +110,14 @@ cd RescueFlow-AI
 
 1. Open SQL Server Management Studio.
 2. Connect to your SQL Server instance.
-3. Execute the database scripts available in the `database/scripts/` directory in the documented order.
+3. Execute the database scripts in `database/scripts/` in numeric order (01 through 07):
+   - `01_CreateDatabase.sql`
+   - `02_CreateTables.sql`
+   - `03_CreateConstraintsAndIndexes.sql`
+   - `04_InsertSampleData.sql`
+   - `05_TestQueries.sql`
+   - `06_CreateVolunteerAssignments.sql`
+   - `07_AddRecipientNgoIdToDonations.sql`
 4. Verify that the database and tables have been created successfully.
 
 ### Run the Backend API
@@ -120,7 +128,17 @@ dotnet build
 dotnet run --project RescueFlow.API/RescueFlow.API.csproj
 ```
 
-Use Swagger to explore and test available API endpoints when Swagger is configured and enabled.
+The API will listen at `http://localhost:5055`. Swagger is available at `http://localhost:5055/swagger`.
+
+### Run the Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+The frontend will run at `http://localhost:5173` and connect with the backend API.
 
 ## 🌿 Git Workflow
 
@@ -131,33 +149,36 @@ All changes should be developed on feature branches and submitted through Pull R
 
 Direct pushes to `main` are not permitted.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for development and contribution guidelines.
-
 ## 📂 Project Structure
 
 ```text
 RescueFlow-AI/
 │
+├── frontend/
+│   ├── src/
+│   │   ├── api/          # Axios HTTP client and API service endpoints
+│   │   ├── components/   # UI layouts, role navigation bars, status badges, and modals
+│   │   ├── context/      # AuthContext and ToastContext
+│   │   ├── pages/        # Role dashboards (Donor, NGO, Volunteer, Admin) & feature workflows
+│   │   └── types/        # TypeScript interfaces and data models
+│   ├── index.html
+│   ├── package.json
+│   ├── vite.config.ts
+│   └── tailwind.config.js
+│
 ├── RescueFlow.API/
-│   ├── Controllers/
-│   ├── Data/
-│   ├── Models/
-│   ├── Services/
-│   └── Program.cs
+│   ├── Controllers/      # ASP.NET Core API controllers
+│   ├── Data/             # RescueFlowDbContext and seed data
+│   ├── DTOs/             # Data Transfer Objects for API requests and responses
+│   ├── Models/           # Entity Framework Core domain models
+│   ├── Services/         # Business services (Urgency calculation, NGO matching, etc.)
+│   └── Program.cs        # Application startup, CORS configuration, JWT authentication
 │
 ├── database/
-│   ├── scripts/
-│   ├── docs/
-│   └── diagrams/
+│   ├── scripts/          # T-SQL scripts for database setup, test queries and migrations
+│   ├── docs/             # Database design documents and data dictionaries
+│   └── diagrams/         # Entity Relationship Diagram (Mermaid)
 │
-├── docs/
-│   ├── architecture/
-│   ├── api/
-│   └── testing/
-│
-├── tests/
-│
-├── CONTRIBUTING.md
 ├── README.md
 └── .gitignore
 ```

@@ -11,10 +11,11 @@
 - [2. NGOProfiles](#2-ngoprofiles)
 - [3. NGOAcceptedCategories](#3-ngoacceptedcategories)
 - [4. Donations](#4-donations)
-- [5. PickupTasks](#5-pickuptasks)
-- [6. Constraints Summary](#6-constraints-summary)
-- [7. Indexes Summary](#7-indexes-summary)
-- [8. Allowed Values Reference](#8-allowed-values-reference)
+- [5. VolunteerAssignments](#5-volunteerassignments)
+- [6. PickupTasks](#6-pickuptasks)
+- [7. Constraints Summary](#7-constraints-summary)
+- [8. Indexes Summary](#8-indexes-summary)
+- [9. Allowed Values Reference](#9-allowed-values-reference)
 
 ---
 
@@ -89,12 +90,28 @@
 | 12 | Status | NVARCHAR(20) | NO | 'Available' | CHECK (CK_Donations_Status) | Current workflow status. See allowed values below. |
 | 13 | UrgencyScore | DECIMAL(5,2) | NO | 0 | CHECK 0–100 (CK_Donations_UrgencyScore) | Calculated urgency (0 = none, 100 = maximum). |
 | 14 | UrgencyLevel | NVARCHAR(10) | NO | 'Low' | CHECK (CK_Donations_UrgencyLevel) | Label: 'Critical', 'High', 'Medium', 'Low'. |
-| 15 | CreatedAt | DATETIME2 | NO | SYSDATETIME() | — | Record creation timestamp. |
-| 16 | UpdatedAt | DATETIME2 | NO | SYSDATETIME() | — | Last modification timestamp. |
+| 15 | RecipientNgoId | INT | YES | NULL | FK → Users(UserId) | NGO user who claimed/accepted the donation. |
+| 16 | CreatedAt | DATETIME2 | NO | SYSDATETIME() | — | Record creation timestamp. |
+| 17 | UpdatedAt | DATETIME2 | NO | SYSDATETIME() | — | Last modification timestamp. |
 
 ---
 
-## 5. PickupTasks
+## 5. VolunteerAssignments
+
+**Purpose:** Tracks volunteer pickup and delivery dispatch records created when an NGO assigns a volunteer or a volunteer accepts a rescue task.
+
+| # | Column | Data Type | Nullable | Default | Constraints | Description |
+|---|---|---|---|---|---|---|
+| 1 | AssignmentId | INT | NO | IDENTITY(1,1) | PRIMARY KEY | Unique assignment identifier. |
+| 2 | DonationId | INT | NO | — | UNIQUE, FK → Donations(DonationId) | Donation linked to this delivery assignment. |
+| 3 | VolunteerId | INT | NO | — | FK → Users(UserId) | Volunteer assigned to the delivery. |
+| 4 | AssignedByNgoId | INT | NO | — | FK → Users(UserId) | NGO user who initiated the assignment. |
+| 5 | AssignedAt | DATETIME2 | NO | SYSDATETIME() | — | Timestamp when volunteer was assigned. |
+| 6 | Status | NVARCHAR(20) | NO | 'Assigned' | CHECK (CK_VolunteerAssignments_Status) | Allowed: 'Assigned', 'PickedUp', 'Delivered', 'Completed', 'Cancelled'. |
+
+---
+
+## 6. PickupTasks
 
 **Purpose:** Tracks the pickup and delivery process after an NGO accepts a donation.
 
@@ -115,7 +132,7 @@
 
 ---
 
-## 6. Constraints Summary
+## 7. Constraints Summary
 
 ### Primary Keys
 
@@ -125,6 +142,7 @@
 | PK_NGOProfiles | NGOProfiles | NGOProfileId |
 | PK_NGOAcceptedCategories | NGOAcceptedCategories | NGOAcceptedCategoryId |
 | PK_Donations | Donations | DonationId |
+| PK_VolunteerAssignments | VolunteerAssignments | AssignmentId |
 | PK_PickupTasks | PickupTasks | PickupTaskId |
 
 ### Unique Constraints
@@ -133,6 +151,7 @@
 |---|---|---|---|
 | UQ_Users_Email | Users | Email | No duplicate email addresses |
 | UQ_NGOProfiles_UserId | NGOProfiles | UserId | One profile per user (1:1) |
+| IX_VolunteerAssignments_DonationId | VolunteerAssignments | DonationId | One assignment per donation |
 | UQ_PickupTasks_DonationId | PickupTasks | DonationId | One task per donation (MVP) |
 | UQ_NGOAcceptedCategories_Profile_Category | NGOAcceptedCategories | (NGOProfileId, FoodCategory) | No duplicate categories per NGO |
 
@@ -143,6 +162,10 @@
 | FK_NGOProfiles_Users | NGOProfiles.UserId | Users.UserId | CASCADE | CASCADE |
 | FK_NGOAcceptedCategories_NGOProfiles | NGOAcceptedCategories.NGOProfileId | NGOProfiles.NGOProfileId | CASCADE | CASCADE |
 | FK_Donations_Users | Donations.DonorId | Users.UserId | NO ACTION | CASCADE |
+| FK_Donations_Users_RecipientNgoId | Donations.RecipientNgoId | Users.UserId | NO ACTION | NO ACTION |
+| FK_VolunteerAssignments_Donations_DonationId | VolunteerAssignments.DonationId | Donations.DonationId | NO ACTION | NO ACTION |
+| FK_VolunteerAssignments_Users_VolunteerId | VolunteerAssignments.VolunteerId | Users.UserId | NO ACTION | NO ACTION |
+| FK_VolunteerAssignments_Users_AssignedByNgoId | VolunteerAssignments.AssignedByNgoId | Users.UserId | NO ACTION | NO ACTION |
 | FK_PickupTasks_Donations | PickupTasks.DonationId | Donations.DonationId | CASCADE | CASCADE |
 | FK_PickupTasks_NGO | PickupTasks.NGOId | Users.UserId | NO ACTION | NO ACTION |
 | FK_PickupTasks_Volunteer | PickupTasks.VolunteerId | Users.UserId | SET NULL | NO ACTION |
@@ -159,21 +182,25 @@
 | CK_Donations_FoodCondition | Donations | FoodCondition IN ('Fresh', 'Near Expiry', 'Leftover', 'Packed') |
 | CK_Donations_StorageType | Donations | StorageType IN ('Refrigerated', 'Room Temperature', 'Frozen') |
 | CK_NGOProfiles_MaximumCapacity | NGOProfiles | MaximumCapacity > 0 |
+| CK_VolunteerAssignments_Status | VolunteerAssignments | Status IN ('Assigned', 'PickedUp', 'Delivered', 'Completed', 'Cancelled') |
 | CK_PickupTasks_Status | PickupTasks | Status IN ('Pending', 'Assigned', 'PickedUp', 'Delivered', 'Failed', 'Cancelled') |
 
 ---
 
-## 7. Indexes Summary
+## 8. Indexes Summary
 
 | Index Name | Table | Column(s) | Type | Purpose |
 |---|---|---|---|---|
 | IX_Users_Role | Users | Role | NONCLUSTERED | Filter users by role |
 | IX_Users_IsActive | Users | IsActive | NONCLUSTERED | Filter active/inactive users |
 | IX_Donations_DonorId | Donations | DonorId | NONCLUSTERED | List donations by donor |
+| IX_Donations_RecipientNgoId | Donations | RecipientNgoId | NONCLUSTERED | Filter donations by receiving NGO |
 | IX_Donations_Status | Donations | Status | NONCLUSTERED | Filter by donation status |
 | IX_Donations_FoodCategory | Donations | FoodCategory | NONCLUSTERED | Match with NGO preferences |
 | IX_Donations_UrgencyScore | Donations | UrgencyScore DESC | NONCLUSTERED | Sort by urgency |
 | IX_Donations_PickupDeadline | Donations | PickupDeadline | NONCLUSTERED | Find expiring donations |
+| IX_VolunteerAssignments_VolunteerId | VolunteerAssignments | VolunteerId | NONCLUSTERED | Filter delivery assignments by volunteer |
+| IX_VolunteerAssignments_AssignedByNgoId | VolunteerAssignments | AssignedByNgoId | NONCLUSTERED | Filter delivery assignments by assigning NGO |
 | IX_PickupTasks_NGOId | PickupTasks | NGOId | NONCLUSTERED | Tasks by NGO |
 | IX_PickupTasks_VolunteerId | PickupTasks | VolunteerId | NONCLUSTERED | Tasks by volunteer |
 | IX_PickupTasks_Status | PickupTasks | Status | NONCLUSTERED | Filter by task status |
@@ -181,7 +208,7 @@
 
 ---
 
-## 8. Allowed Values Reference
+## 9. Allowed Values Reference
 
 ### User Roles
 

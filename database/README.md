@@ -24,10 +24,12 @@ database/
 ├── README.md                       ← You are here
 ├── scripts/
 │   ├── 01_CreateDatabase.sql       ← Creates the RescueFlowDB database
-│   ├── 02_CreateTables.sql         ← Creates all 5 tables
+│   ├── 02_CreateTables.sql         ← Creates base tables
 │   ├── 03_CreateConstraintsAndIndexes.sql  ← CHECK constraints & indexes
 │   ├── 04_InsertSampleData.sql     ← Realistic test data (10 users, 8 donations, etc.)
-│   └── 05_TestQueries.sql          ← 12 test queries to verify data
+│   ├── 05_TestQueries.sql          ← 12 test queries to verify data
+│   ├── 06_CreateVolunteerAssignments.sql   ← Creates VolunteerAssignments table & migrations
+│   └── 07_AddRecipientNgoIdToDonations.sql ← Adds RecipientNgoId mapping & demo NGO profile
 ├── diagrams/
 │   └── RescueFlow_ERD.md           ← Mermaid ER diagram (view on GitHub)
 └── docs/
@@ -39,11 +41,12 @@ database/
 
 | Table | Records (Sample) | Purpose |
 |---|---|---|
-| **Users** | 10 | All system users (Donor, NGO, Volunteer, Admin) |
-| **NGOProfiles** | 3 | Additional details for NGO users |
+| **Users** | 10+ | All system users (Donor, NGO, Volunteer, Admin) |
+| **NGOProfiles** | 3+ | Organization details for NGO users |
 | **NGOAcceptedCategories** | 9 | Food categories each NGO accepts |
-| **Donations** | 8 | Surplus food donation listings |
-| **PickupTasks** | 5 | Pickup and delivery tracking |
+| **Donations** | 8+ | Surplus food donation listings |
+| **VolunteerAssignments** | 3+ | Volunteer pickup and delivery dispatch tracking |
+| **PickupTasks** | 5 | Legacy pickup and delivery tracking |
 
 ## 🚀 Quick Start
 
@@ -55,7 +58,7 @@ database/
 ### Setup Steps
 
 1. Open **SSMS** and connect to your SQL Server instance.
-2. Run the scripts **in order** (1 → 2 → 3 → 4 → 5):
+2. Run the scripts **in order** (1 → 2 → 3 → 4 → 5 → 6 → 7):
 
 | Step | File | Action |
 |---|---|---|
@@ -64,10 +67,12 @@ database/
 | 3 | `scripts/03_CreateConstraintsAndIndexes.sql` | Execute |
 | 4 | `scripts/04_InsertSampleData.sql` | Execute |
 | 5 | `scripts/05_TestQueries.sql` | Execute — review results |
+| 6 | `scripts/06_CreateVolunteerAssignments.sql` | Creates VolunteerAssignments & migrates tasks |
+| 7 | `scripts/07_AddRecipientNgoIdToDonations.sql` | Adds RecipientNgoId mapping to Donations |
 
 3. Verify by expanding `RescueFlowDB → Tables` in Object Explorer.
 
-> ⚠️ **Important:** Always select `RescueFlowDB` in the database dropdown before executing scripts 02–05.
+> ⚠️ **Important:** Always select `RescueFlowDB` in the database dropdown before executing scripts 02–07.
 
 ## 🔗 ER Diagram
 

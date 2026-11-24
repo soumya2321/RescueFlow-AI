@@ -42,6 +42,7 @@ erDiagram
     Donations {
         INT DonationId PK "IDENTITY(1,1)"
         INT DonorId FK "NOT NULL → Users"
+        INT RecipientNgoId FK "NULLABLE → Users"
         NVARCHAR FoodName "NOT NULL, 200 chars"
         NVARCHAR FoodCategory "NOT NULL, 50 chars"
         DECIMAL Quantity "NOT NULL, CHECK > 0"
@@ -56,6 +57,15 @@ erDiagram
         NVARCHAR UrgencyLevel "NOT NULL, CHECK constraint"
         DATETIME2 CreatedAt "NOT NULL, DEFAULT SYSDATETIME()"
         DATETIME2 UpdatedAt "NOT NULL, DEFAULT SYSDATETIME()"
+    }
+
+    VolunteerAssignments {
+        INT AssignmentId PK "IDENTITY(1,1)"
+        INT DonationId FK "NOT NULL, UNIQUE → Donations"
+        INT VolunteerId FK "NOT NULL → Users"
+        INT AssignedByNgoId FK "NOT NULL → Users"
+        DATETIME2 AssignedAt "NOT NULL, DEFAULT SYSDATETIME()"
+        NVARCHAR Status "NOT NULL, CHECK: Assigned/PickedUp/Delivered/Completed/Cancelled"
     }
 
     PickupTasks {
@@ -76,7 +86,11 @@ erDiagram
     Users ||--o| NGOProfiles : "has profile (1:1, NGO only)"
     NGOProfiles ||--o{ NGOAcceptedCategories : "accepts categories (1:N)"
     Users ||--o{ Donations : "creates donations (1:N, Donor only)"
-    Donations ||--o| PickupTasks : "has pickup task (1:1, MVP)"
+    Users ||--o{ Donations : "recipient NGO (0..1:N)"
+    Donations ||--o| VolunteerAssignments : "has assignment (1:0..1)"
+    Users ||--o{ VolunteerAssignments : "assigned as Volunteer (1:N)"
+    Users ||--o{ VolunteerAssignments : "assigned by NGO (1:N)"
+    Donations ||--o| PickupTasks : "has pickup task (1:1, legacy)"
     Users ||--o{ PickupTasks : "accepts as NGO (1:N)"
     Users |o--o{ PickupTasks : "assigned as Volunteer (0..1:N)"
 ```
@@ -87,10 +101,14 @@ erDiagram
 |---|---|---|---|
 | **Users → NGOProfiles** | One-to-One | 1 : 0..1 | Only NGO-role users have a profile. `UserId` in NGOProfiles is UNIQUE. |
 | **NGOProfiles → NGOAcceptedCategories** | One-to-Many | 1 : 0..N | Each NGO profile can have many accepted food categories. |
-| **Users → Donations** | One-to-Many | 1 : 0..N | A Donor user creates many donations. `DonorId` FK. |
-| **Donations → PickupTasks** | One-to-One (MVP) | 1 : 0..1 | Each donation has at most one pickup task. `DonationId` is UNIQUE. |
-| **Users → PickupTasks (NGOId)** | One-to-Many | 1 : 0..N | An NGO user can accept multiple donations. |
-| **Users → PickupTasks (VolunteerId)** | One-to-Many (Nullable) | 0..1 : 0..N | A volunteer can be assigned to many tasks. Field is nullable. |
+| **Users → Donations (DonorId)** | One-to-Many | 1 : 0..N | A Donor user creates many donations. `DonorId` FK. |
+| **Users → Donations (RecipientNgoId)** | One-to-Many (Nullable) | 0..1 : 0..N | An NGO user claims/receives a donation. `RecipientNgoId` FK. |
+| **Donations → VolunteerAssignments** | One-to-One | 1 : 0..1 | Each donation has at most one volunteer assignment. `DonationId` is UNIQUE. |
+| **Users → VolunteerAssignments (VolunteerId)** | One-to-Many | 1 : 0..N | A volunteer can be assigned to multiple delivery tasks. |
+| **Users → VolunteerAssignments (AssignedByNgoId)** | One-to-Many | 1 : 0..N | An NGO can assign multiple delivery tasks to volunteers. |
+| **Donations → PickupTasks** | One-to-One (Legacy) | 1 : 0..1 | Legacy pickup task table. `DonationId` is UNIQUE. |
+| **Users → PickupTasks (NGOId)** | One-to-Many | 1 : 0..N | Legacy NGO task link. |
+| **Users → PickupTasks (VolunteerId)** | One-to-Many (Nullable) | 0..1 : 0..N | Legacy volunteer task link. |
 
 ## Status Workflows
 
