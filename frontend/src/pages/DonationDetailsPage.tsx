@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, Clock, MapPin, Package, ShieldCheck, Truck } from 'lucide-react';
-import { assignmentsApi, donationsApi } from '../api/services';
+import { assignmentsApi, donationsApi, usersApi } from '../api/services';
 import { extractErrorMessage } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -9,7 +9,7 @@ import { ConfirmModal } from '../components/ConfirmModal';
 import { ErrorBanner, LoadingSpinner } from '../components/FeedbackStates';
 import { StatusBadge, UrgencyBadge } from '../components/Badges';
 import { formatHoursRemaining, getAllowedPatchStatusTransitions } from '../utils/urgency';
-import type { Donation, DonationStatus, UrgencyResult, VolunteerAssignment } from '../types';
+import type { Donation, DonationStatus, UrgencyResult, VolunteerAssignment, VolunteerSummary } from '../types';
 
 export const DonationDetailsPage: React.FC = () => {
   const { id } = useParams();
@@ -20,6 +20,8 @@ export const DonationDetailsPage: React.FC = () => {
   const [donation, setDonation] = useState<Donation | null>(null);
   const [urgency, setUrgency] = useState<UrgencyResult | null>(null);
   const [assignment, setAssignment] = useState<VolunteerAssignment | null>(null);
+  const [volunteers, setVolunteers] = useState<VolunteerSummary[]>([]);
+  const [volunteerError, setVolunteerError] = useState('');
   const [volunteerIdInput, setVolunteerIdInput] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -42,6 +44,18 @@ export const DonationDetailsPage: React.FC = () => {
       ]);
       setDonation(d);
       setUrgency(u);
+      setAssignment(null);
+      setVolunteers([]);
+      setVolunteerError('');
+      setVolunteerIdInput('');
+
+      if (user?.role === 'NGO' && d.acceptedByNgoId === user.userId && d.status === 'Accepted') {
+        try {
+          setVolunteers(await usersApi.getVolunteers());
+        } catch (err) {
+          setVolunteerError(extractErrorMessage(err));
+        }
+      }
 
       if (user?.role === 'NGO' || user?.role === 'Volunteer') {
         try {
@@ -60,7 +74,7 @@ export const DonationDetailsPage: React.FC = () => {
 
   useEffect(() => {
     if (donationId) loadDetails();
-  }, [donationId]);
+  }, [donationId, user?.userId, user?.role]);
 
   const executeConfirmed = async () => {
     if (!pendingAction) return;
@@ -80,8 +94,21 @@ export const DonationDetailsPage: React.FC = () => {
   if (error || !donation) return <ErrorBanner message={error || 'Donation not found.'} onRetry={loadDetails} />;
 
   const isOwner = user?.userId === donation.donorId;
-  const allowedNextStatuses = getAllowedPatchStatusTransitions(donation.status, user?.role, isOwner);
 
+const isNgoOwner =
+  user?.role === 'NGO' &&
+  donation.acceptedByNgoId === user.userId;
+
+const allowedNextStatuses =
+  user?.role === 'NGO' &&
+  donation.status !== 'Available' &&
+  !isNgoOwner
+    ? []
+    : getAllowedPatchStatusTransitions(
+        donation.status,
+        user?.role,
+        isOwner
+      );
   const handleStatusChange = (nextStatus: DonationStatus) => {
     setPendingAction({
       title: `Update status to ${nextStatus}?`,
@@ -97,13 +124,14 @@ export const DonationDetailsPage: React.FC = () => {
   const handleAssignVolunteer = (e: React.FormEvent) => {
     e.preventDefault();
     const volId = Number(volunteerIdInput);
-    if (!volId || volId <= 0) {
-      showToast('Enter a valid Volunteer User ID.', 'error');
+    const selectedVolunteer = volunteers.find((v) => v.userId === volId);
+    if (!selectedVolunteer) {
+      showToast('Please select an active volunteer.', 'error');
       return;
     }
     setPendingAction({
       title: 'Assign Volunteer?',
-      message: `Assign Volunteer #${volId} to pick up "${donation.foodName}"?`,
+      message: `Assign ${selectedVolunteer.fullName} (#${volId}) to pick up "${donation.foodName}"?`,
       run: async () => {
         await assignmentsApi.assignVolunteer(donation.donationId, volId);
         showToast(`Volunteer #${volId} assigned.`, 'success');
@@ -128,7 +156,7 @@ export const DonationDetailsPage: React.FC = () => {
           <div>
             <span className="text-xs font-mono text-slate-400">DONATION #{donation.donationId}</span>
             <h1 className="text-2xl font-bold text-slate-900 mt-0.5">{donation.foodName}</h1>
-            <p className="text-sm text-slate-500">{donation.foodCategory} · Donor ID #{donation.donorId}</p>
+            <p className="text-sm text-slate-500">{donation.foodCategory} &middot; Donor ID #{donation.donorId}</p>
           </div>
           <UrgencyBadge level={urgency?.level || donation.urgencyLevel} score={urgency?.score ?? donation.urgencyScore} />
         </div>
@@ -140,7 +168,7 @@ export const DonationDetailsPage: React.FC = () => {
           </div>
           <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100">
             <div className="text-xs text-slate-500">Condition &amp; Storage</div>
-            <div className="font-semibold text-slate-900 mt-1">{donation.foodCondition} · {donation.storageType}</div>
+            <div className="font-semibold text-slate-900 mt-1">{donation.foodCondition} &middot; {donation.storageType}</div>
           </div>
           <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100">
             <div className="text-xs text-slate-500 flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> Pickup Deadline</div>
@@ -214,18 +242,24 @@ export const DonationDetailsPage: React.FC = () => {
             ))}
           </div>
         )}
-
-        {user?.role === 'NGO' && donation.status === 'Accepted' && !assignment && (
+  {isNgoOwner && donation.status === 'Accepted' && !assignment && (
           <form onSubmit={handleAssignVolunteer} className="flex flex-wrap items-center gap-2 pt-2">
-            <input
-              type="number"
-              min="1"
+            {volunteerError && (
+              <p className="w-full text-sm text-rose-700">{volunteerError} <button type="button" onClick={loadDetails} className="underline">Retry</button></p>
+            )}
+            <select
+              aria-label="Select volunteer"
               value={volunteerIdInput}
               onChange={(e) => setVolunteerIdInput(e.target.value)}
-              placeholder="Volunteer User ID (e.g., 3)"
+              disabled={volunteers.length === 0 || actionLoading}
               className="rounded-xl border border-slate-300 px-3.5 py-2 text-sm w-60"
-            />
-            <button type="submit" className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold">
+            >
+              <option value="">{volunteerError ? 'Unable to load volunteers' : volunteers.length === 0 ? 'No active volunteers' : 'Select Volunteer'}</option>
+              {volunteers.map((v) => (
+                <option key={v.userId} value={v.userId}>{v.fullName} (#{v.userId})</option>
+              ))}
+            </select>
+            <button type="submit" disabled={actionLoading || !volunteers.some((v) => v.userId === Number(volunteerIdInput))} className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed">
               Assign Volunteer
             </button>
           </form>
@@ -235,10 +269,10 @@ export const DonationDetailsPage: React.FC = () => {
           <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex flex-wrap items-center justify-between gap-3">
             <div className="text-sm">
               <div className="font-semibold text-slate-900">
-                Assignment #{assignment.assignmentId} · Volunteer #{assignment.volunteerId}
+                Assignment #{assignment.assignmentId} &middot; Volunteer #{assignment.volunteerId}
               </div>
               <div className="text-xs text-slate-500">
-                Status: <strong>{assignment.status}</strong> · Assigned {new Date(assignment.assignedAt).toLocaleString()}
+                Status: <strong>{assignment.status}</strong> &middot; Assigned {new Date(assignment.assignedAt).toLocaleString()}
               </div>
             </div>
             <div className="flex gap-2">
@@ -276,7 +310,7 @@ export const DonationDetailsPage: React.FC = () => {
                   Confirm Delivery
                 </button>
               )}
-              {user?.role === 'NGO' && assignment.status === 'Delivered' && (
+              {isNgoOwner && assignment.status === 'Delivered' && (
                 <button
                   onClick={() =>
                     setPendingAction({
@@ -297,7 +331,7 @@ export const DonationDetailsPage: React.FC = () => {
           </div>
         )}
 
-        {allowedNextStatuses.length === 0 && !assignment && !(user?.role === 'NGO' && donation.status === 'Accepted') && (
+{allowedNextStatuses.length === 0 && !assignment && !(isNgoOwner && donation.status === 'Accepted') && (
           <p className="text-sm text-slate-500">No workflow actions available for your role at the current status ({donation.status}).</p>
         )}
       </div>

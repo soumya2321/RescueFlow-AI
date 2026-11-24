@@ -1,3 +1,4 @@
+import { NotificationsPage } from './pages/NotificationsPage';
 import React from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
@@ -16,8 +17,11 @@ import { AvailableDonationsPage } from './pages/AvailableDonationsPage';
 import { AcceptedDonationsPage } from './pages/AcceptedDonationsPage';
 import { AssignedTasksPage } from './pages/AssignedTasksPage';
 import { ProfilePage } from './pages/ProfilePage';
+import { ManageUsersPage } from './pages/ManageUsersPage';
 
-export function App() {
+import { NGOProfilePage, ManageNGOsPage } from './pages/NGOPages';
+
+export default function App() {
   return (
     <BrowserRouter>
       <ToastProvider>
@@ -34,8 +38,13 @@ export function App() {
                 </ProtectedRoute>
               }
             >
+              <Route path="/notifications" element={<NotificationsPage />} />
               <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/ngo/profile" element={<ProtectedRoute allowedRoles={['NGO']}><NGOProfilePage /></ProtectedRoute>} />
+              <Route path="/admin/ngos" element={<ProtectedRoute allowedRoles={['Admin']}><ManageNGOsPage /></ProtectedRoute>} />
+
               <Route path="/donations" element={<DonationsPage />} />
+
               <Route
                 path="/donations/create"
                 element={
@@ -44,8 +53,17 @@ export function App() {
                   </ProtectedRoute>
                 }
               />
-              <Route path="/donations/:id" element={<DonationDetailsPage />} />
-              <Route path="/urgency-ranking" element={<UrgencyRankingPage />} />
+
+              <Route
+                path="/donations/:id"
+                element={<DonationDetailsPage />}
+              />
+
+              <Route
+                path="/urgency-ranking"
+                element={<UrgencyRankingPage />}
+              />
+
               <Route
                 path="/available-donations"
                 element={
@@ -54,14 +72,16 @@ export function App() {
                   </ProtectedRoute>
                 }
               />
+
               <Route
                 path="/accepted-donations"
                 element={
-                  <ProtectedRoute allowedRoles={['NGO', 'Admin']}>
+                  <ProtectedRoute allowedRoles={['NGO']}>
                     <AcceptedDonationsPage />
                   </ProtectedRoute>
                 }
               />
+
               <Route
                 path="/assigned-tasks"
                 element={
@@ -70,7 +90,19 @@ export function App() {
                   </ProtectedRoute>
                 }
               />
+
+              {/* Admin User Management */}
+              <Route
+                path="/admin/users"
+                element={
+                  <ProtectedRoute allowedRoles={['Admin']}>
+                    <ManageUsersPage />
+                  </ProtectedRoute>
+                }
+              />
+
               <Route path="/profile" element={<ProfilePage />} />
+
             </Route>
 
             <Route path="*" element={<Navigate to="/" replace />} />
@@ -80,5 +112,3 @@ export function App() {
     </BrowserRouter>
   );
 }
-
-export default App;

@@ -13,9 +13,9 @@ export const CreateDonationPage: React.FC = () => {
   const [foodCategory, setFoodCategory] = useState('Cooked Food');
   const [quantity, setQuantity] = useState('10');
   const [unit, setUnit] = useState('kg');
-  const [foodCondition, setFoodCondition] = useState('Cooked');
-  const [storageType, setStorageType] = useState('Hot Box');
-  const [pickupDeadline, setPickupDeadline] = useState('');
+const [foodCondition, setFoodCondition] = useState('Fresh');
+const [storageType, setStorageType] = useState('Room Temperature');
+const [pickupDeadline, setPickupDeadline] = useState('');
   const [pickupAddress, setPickupAddress] = useState('');
   const [description, setDescription] = useState('');
   const [error, setError] = useState('');
@@ -135,11 +135,10 @@ export const CreateDonationPage: React.FC = () => {
               onChange={(e) => setFoodCondition(e.target.value)}
               className="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm bg-white"
             >
-              <option value="Highly Perishable">Highly Perishable</option>
-              <option value="Perishable">Perishable</option>
-              <option value="Cooked">Cooked</option>
-              <option value="Fresh">Fresh</option>
-              <option value="Packed">Packed</option>
+            <option value="Fresh">Fresh</option>
+<option value="Packed">Packed</option>
+<option value="Leftover">Leftover</option>
+<option value="Near Expiry">Near Expiry</option>
             </select>
           </div>
         </div>
@@ -152,10 +151,9 @@ export const CreateDonationPage: React.FC = () => {
               onChange={(e) => setStorageType(e.target.value)}
               className="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm bg-white"
             >
-              <option value="Hot Box">Hot Box</option>
-              <option value="Refrigerated">Refrigerated</option>
-              <option value="Room Temperature">Room Temperature</option>
-              <option value="Frozen">Frozen</option>
+             <option value="Room Temperature">Room Temperature</option>
+<option value="Refrigerated">Refrigerated</option>
+<option value="Frozen">Frozen</option>
             </select>
           </div>
           <div>

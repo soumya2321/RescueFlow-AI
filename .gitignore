@@ -5,3 +5,25 @@ obj/
 *.user
 *.suo
 TestResults/
+
+
+# Local backups
+*.security.bak
+ngo-backup-*/
+
+# TypeScript build cache
+*.tsbuildinfo
+
+# Accidental root npm lockfile
+/package-lock.json
+
+# Environment secrets
+.env
+.env.*
+!.env.example
+
+# Local configuration
+appsettings.Local.json
+appsettings.Development.json
+# Accidental Git pager output
+/-files*

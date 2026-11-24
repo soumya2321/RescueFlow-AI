@@ -46,11 +46,14 @@ export const LoginPage: React.FC = () => {
     await performLogin(email, password);
   };
 
-  const handleDemoFill = (demoEmail: string, demoPassword: string) => {
+
+const handleDemoFill = async (demoEmail: string, demoPassword: string) => {
     setEmail(demoEmail);
     setPassword(demoPassword);
     setError('');
-  };
+
+    await performLogin(demoEmail, demoPassword);
+};
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center items-center p-4">
@@ -120,11 +123,12 @@ export const LoginPage: React.FC = () => {
           </button>
         </form>
 
-        {/* Demo Login Accounts */}
-        <div className="rounded-xl bg-emerald-50/70 border border-emerald-200 p-4 space-y-2.5">
+      {/* Demo Login Accounts */}
+{import.meta.env.DEV && (
+<div className="rounded-xl bg-emerald-50/70 border border-emerald-200 p-4 space-y-2.5">
           <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-900">
             <UserCheck className="w-4 h-4 text-emerald-600" />
-            <span>Demo Login Accounts (Click to Fill)</span>
+            <span>Quick Demo Login (Click to Sign In)</span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {DEMO_ACCOUNTS.map((acc) => (
@@ -132,6 +136,7 @@ export const LoginPage: React.FC = () => {
                 key={acc.role}
                 type="button"
                 onClick={() => handleDemoFill(acc.email, acc.password)}
+disabled={submitting}
                 className="text-left p-2.5 rounded-lg bg-white border border-emerald-200 hover:border-emerald-400 hover:bg-emerald-50 transition"
               >
                 <div className="text-xs font-bold text-slate-900">{acc.role}</div>
@@ -141,7 +146,7 @@ export const LoginPage: React.FC = () => {
             ))}
           </div>
         </div>
-
+)}
         <p className="text-center text-sm text-slate-600">
           Don&apos;t have an account?{' '}
           <Link to="/register" className="font-semibold text-emerald-600 hover:text-emerald-700">

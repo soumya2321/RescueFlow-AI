@@ -1,3 +1,4 @@
+import { NotificationBell } from './NotificationBell';
 import React, { useState } from 'react';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
@@ -10,8 +11,9 @@ import {
   Package,
   PlusCircle,
   Sprout,
-  User as UserIcon,
-  X
+    User as UserIcon,
+  Users,
+  X  
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import type { UserRole } from '../types';
@@ -29,6 +31,8 @@ export const Layout: React.FC = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const navItems: NavItem[] = [
+    { to: '/ngo/profile', label: 'NGO Verification', icon: <Users className="w-4 h-4" />, roles: ['NGO'] },
+    { to: '/admin/ngos', label: 'Manage NGOs', icon: <Users className="w-4 h-4" />, roles: ['Admin'] },
     { to: '/dashboard', label: 'Dashboard', icon: <LayoutDashboard className="w-4 h-4" /> },
     { to: '/donations', label: 'All Donations', icon: <Package className="w-4 h-4" /> },
     {
@@ -44,19 +48,30 @@ export const Layout: React.FC = () => {
       icon: <Package className="w-4 h-4" />,
       roles: ['NGO', 'Admin']
     },
+    
     {
-      to: '/accepted-donations',
-      label: 'Accepted Donations',
-      icon: <CheckCircle2 className="w-4 h-4" />,
-      roles: ['NGO', 'Admin']
-    },
+  to: '/accepted-donations',
+  label: 'Accepted Donations',
+  icon: <CheckCircle2 className="w-4 h-4" />,
+  roles: ['NGO']
+},
     {
       to: '/assigned-tasks',
       label: 'Assigned Tasks',
       icon: <ClipboardList className="w-4 h-4" />,
       roles: ['Volunteer']
     },
-    { to: '/profile', label: 'Profile & Settings', icon: <UserIcon className="w-4 h-4" /> }
+  {
+  to: '/admin/users',
+  label: 'Manage Users',
+  icon: <Users className="w-4 h-4" />,
+  roles: ['Admin']
+},
+{
+  to: '/profile',
+  label: 'Profile & Settings',
+  icon: <UserIcon className="w-4 h-4" />
+}
   ];
 
   const visibleItems = navItems.filter((item) => !item.roles || (user && item.roles.includes(user.role)));
@@ -101,6 +116,7 @@ export const Layout: React.FC = () => {
           </Link>
         </div>
 
+        <div className="px-4 pt-2"><NotificationBell /></div>
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">{renderLinks()}</nav>
 
         <div className="p-4 border-t border-slate-100 space-y-3">
@@ -127,6 +143,7 @@ export const Layout: React.FC = () => {
             </div>
             <span className="font-bold text-slate-900">RescueFlow AI</span>
           </Link>
+          <NotificationBell />
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
             className="p-2 rounded-lg text-slate-600 hover:bg-slate-100"

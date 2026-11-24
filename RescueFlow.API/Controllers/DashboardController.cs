@@ -88,7 +88,9 @@ namespace RescueFlow.API.Controllers
                     .CountAsync(d => d.Status == "Available"),
 
                 AcceptedDonations = await donations
-                    .CountAsync(d => d.Status == "Accepted"),
+                    .CountAsync(d =>
+                        d.Status == "Accepted" &&
+                        d.AcceptedByNgoId == ngoId.Value),
 
                 MyTotalAssignments = await assignments.CountAsync(),
 

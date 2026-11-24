@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Bar, BarChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { AlertTriangle, CheckCircle2, Flame, Package, PlusCircle, RefreshCw, Scale } from 'lucide-react';
-import { dashboardApi, donationsApi } from '../api/services';
+import { CheckCircle2, Flame, Package, PlusCircle, RefreshCw, Scale } from 'lucide-react';
+import { adminApi, dashboardApi, donationsApi } from '../api/services';
 import { extractErrorMessage } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { EmptyState, ErrorBanner, LoadingSpinner } from '../components/FeedbackStates';
 import { StatusBadge, UrgencyBadge } from '../components/Badges';
-import type { Donation, DonorDashboardStats, NgoDashboardStats, VolunteerDashboardStats } from '../types';
+import type { AdminDashboardStats, Donation, DonorDashboardStats, NgoDashboardStats, VolunteerDashboardStats } from '../types';
 
 const URGENCY_COLORS: Record<string, string> = {
   Critical: '#dc2626',
@@ -19,7 +19,7 @@ const URGENCY_COLORS: Record<string, string> = {
 export const DashboardPage: React.FC = () => {
   const { user } = useAuth();
   const [donations, setDonations] = useState<Donation[]>([]);
-  const [roleStats, setRoleStats] = useState<DonorDashboardStats | NgoDashboardStats | VolunteerDashboardStats | null>(null);
+  const [roleStats, setRoleStats] = useState<AdminDashboardStats | DonorDashboardStats | NgoDashboardStats | VolunteerDashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -35,6 +35,8 @@ export const DashboardPage: React.FC = () => {
           ? dashboardApi.ngo()
           : user?.role === 'Volunteer'
           ? dashboardApi.volunteer()
+          : user?.role === 'Admin'
+          ? adminApi.getDashboard()
           : Promise.resolve(null)
       ]);
       setDonations(allDonations);
@@ -47,8 +49,8 @@ export const DashboardPage: React.FC = () => {
   };
 
   useEffect(() => {
-    loadData();
-  }, [user?.role]);
+    if (user?.userId) loadData();
+  }, [user?.userId, user?.role]);
 
   if (loading) return <LoadingSpinner label="Loading dashboard analytics..." />;
   if (error) return <ErrorBanner message={error} onRetry={loadData} />;
@@ -168,10 +170,28 @@ export const DashboardPage: React.FC = () => {
         </div>
       )}
 
-      {user?.role === 'Admin' && (
-        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-center gap-3 text-sm text-amber-900">
-          <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
-          <span>Admin-specific endpoints (<code>/api/dashboard/admin</code> and <code>/api/users</code>) are not yet implemented on the backend; displaying aggregated donation analytics above.</span>
+      {user?.role === 'Admin' && roleStats && 'totalUsers' in roleStats && (
+        <div className="space-y-3">
+          <h2 className="font-semibold text-slate-900">User and Assignment Overview</h2>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {[
+              ['Total Users', roleStats.totalUsers],
+              ['Active Users', roleStats.activeUsers],
+              ['Inactive Users', roleStats.inactiveUsers],
+              ['Donors', roleStats.totalDonors],
+              ['NGOs', roleStats.totalNGOs],
+              ['Volunteers', roleStats.totalVolunteers],
+              ['Administrators', roleStats.totalAdmins],
+              ['Total Assignments', roleStats.totalAssignments],
+              ['Active Assignments', roleStats.activeAssignments],
+              ['Completed Assignments', roleStats.completedAssignments]
+            ].map(([label, value]) => (
+              <div key={label} className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs">
+                <div className="text-xs font-medium text-slate-500">{label}</div>
+                <div className="text-2xl font-bold text-slate-900 mt-2">{value}</div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

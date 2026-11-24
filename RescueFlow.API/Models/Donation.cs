@@ -13,7 +13,7 @@ namespace RescueFlow.API.Models
         public int DonationId { get; set; }
 
         public int DonorId { get; set; }
-
+public int? AcceptedByNgoId { get; set; }
         [Required]
         [MaxLength(200)]
         public string FoodName { get; set; } = string.Empty;

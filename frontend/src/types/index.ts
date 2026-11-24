@@ -37,6 +37,10 @@ export interface RegisterRequest {
   password: string;
   role: UserRole;
   phone?: string;
+  organizationName?: string;
+  maximumCapacity?: number;
+  capacityUnit?: string;
+  location?: string;
 }
 
 export interface LoginRequest {
@@ -47,6 +51,7 @@ export interface LoginRequest {
 export interface Donation {
   donationId: number;
   donorId: number;
+acceptedByNgoId: number | null;
   foodName: string;
   foodCategory: string;
   quantity: number;
@@ -115,4 +120,50 @@ export interface VolunteerDashboardStats {
   pickedUpDonations: number;
   deliveredDonations: number;
   completedAssignments: number;
+}
+
+export interface VolunteerSummary {
+  userId: number;
+  fullName: string;
+}
+
+export interface AdminDashboardStats {
+  totalUsers: number;
+  activeUsers: number;
+  inactiveUsers: number;
+  totalDonors: number;
+  totalNGOs: number;
+  totalVolunteers: number;
+  totalAdmins: number;
+
+  totalDonations: number;
+  availableDonations: number;
+  acceptedDonations: number;
+  assignedDonations: number;
+  pickedUpDonations: number;
+  deliveredDonations: number;
+  completedDonations: number;
+  cancelledDonations: number;
+  expiredDonations: number;
+  rejectedDonations: number;
+  failedDonations: number;
+
+  totalAssignments: number;
+  activeAssignments: number;
+  completedAssignments: number;
+}
+
+export interface AdminUser extends UserProfile {
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UpdateUserStatusResponse {
+  message: string;
+  userId: number;
+  fullName: string;
+  email: string;
+  role: UserRole;
+  isActive: boolean;
+  updatedAt: string;
 }

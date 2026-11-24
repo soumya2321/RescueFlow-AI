@@ -1,3 +1,11 @@
+import type {
+  AdminDashboardStats,
+  AdminUser,
+  UpdateUserStatusResponse,
+  UserRole
+} from '../types';
+
+import type { VolunteerSummary } from '../types';
 import { apiClient } from './client';
 import type {
   AuthResponse,
@@ -14,17 +22,42 @@ import type {
   VolunteerDashboardStats
 } from '../types';
 
+
 export const authApi = {
   register: async (payload: RegisterRequest): Promise<AuthResponse> => {
     const { data } = await apiClient.post<AuthResponse>('/api/auth/register', payload);
     return data;
   },
+
   login: async (payload: LoginRequest): Promise<AuthResponse> => {
     const { data } = await apiClient.post<AuthResponse>('/api/auth/login', payload);
     return data;
   },
+
   me: async (): Promise<UserProfile> => {
     const { data } = await apiClient.get<UserProfile>('/api/auth/me');
+    return data;
+  },
+
+  updateProfile: async (payload: {
+    fullName: string;
+    email: string;
+    phone: string | null;
+  }): Promise<UserProfile> => {
+    const { data } = await apiClient.put<UserProfile>(
+      '/api/auth/profile', payload
+    );
+    return data;
+  },
+
+  changePassword: async (payload: {
+    currentPassword: string;
+    newPassword: string;
+    confirmPassword: string;
+  }): Promise<{ message: string }> => {
+    const { data } = await apiClient.put<{ message: string }>(
+      '/api/auth/change-password', payload
+    );
     return data;
   }
 };
@@ -35,18 +68,11 @@ export const donationsApi = {
     return data;
   },
   getById: async (id: number): Promise<Donation> => {
-    try {
-      const { data } = await apiClient.get<Donation>(`/api/donations/${id}`);
-      return data;
-    } catch {
-      // Backend GetDonationById currently returns 400 for non-Available donations;
-      // fall back to full list so accepted/assigned/completed details remain viewable.
-      const all = await donationsApi.getAll();
-      const found = all.find((d) => d.donationId === id);
-      if (!found) throw new Error('Donation not found.');
-      return found;
-    }
-  },
+  const { data } = await apiClient.get<Donation>(
+    `/api/donations/${id}`
+  );
+  return data;
+},
   create: async (payload: CreateDonationRequest): Promise<Donation> => {
     const { data } = await apiClient.post<Donation>('/api/donations', payload);
     return data;
@@ -99,17 +125,74 @@ export const assignmentsApi = {
   }
 };
 
+
 export const dashboardApi = {
   donor: async (): Promise<DonorDashboardStats> => {
-    const { data } = await apiClient.get<DonorDashboardStats>('/api/dashboard/donor');
+    const { data } = await apiClient.get<DonorDashboardStats>(
+      '/api/dashboard/donor'
+    );
     return data;
   },
+
   ngo: async (): Promise<NgoDashboardStats> => {
-    const { data } = await apiClient.get<NgoDashboardStats>('/api/dashboard/ngo');
+    const { data } = await apiClient.get<NgoDashboardStats>(
+      '/api/dashboard/ngo'
+    );
     return data;
   },
+
   volunteer: async (): Promise<VolunteerDashboardStats> => {
-    const { data } = await apiClient.get<VolunteerDashboardStats>('/api/dashboard/volunteer');
+    const { data } = await apiClient.get<VolunteerDashboardStats>(
+      '/api/dashboard/volunteer'
+    );
+    return data;
+  }
+};
+
+export const usersApi = {
+  getVolunteers: async (): Promise<VolunteerSummary[]> => {
+    const { data } = await apiClient.get<VolunteerSummary[]>(
+      '/api/users/volunteers'
+    );
+    return data;
+  },
+};
+
+export const adminApi = {
+  getDashboard: async (): Promise<AdminDashboardStats> => {
+    const { data } = await apiClient.get<AdminDashboardStats>(
+      '/api/admin/dashboard'
+    );
+    return data;
+  },
+
+  getUsers: async (filters?: {
+    role?: UserRole;
+    isActive?: boolean;
+    search?: string;
+  }): Promise<AdminUser[]> => {
+    const { data } = await apiClient.get<AdminUser[]>(
+      '/api/admin/users',
+      { params: filters }
+    );
+    return data;
+  },
+
+  getUserById: async (id: number): Promise<AdminUser> => {
+    const { data } = await apiClient.get<AdminUser>(
+      `/api/admin/users/${id}`
+    );
+    return data;
+  },
+
+  updateUserStatus: async (
+    id: number,
+    isActive: boolean
+  ): Promise<UpdateUserStatusResponse> => {
+    const { data } = await apiClient.patch<UpdateUserStatusResponse>(
+      `/api/admin/users/${id}/status`,
+      { isActive }
+    );
     return data;
   }
 };

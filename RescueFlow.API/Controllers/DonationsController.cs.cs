@@ -1,4 +1,3 @@
-﻿
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RescueFlow.API.Data;
@@ -10,11 +9,28 @@ using System.Security.Claims;
 namespace RescueFlow.API.Controllers
 {
     [ApiController]
+    [Authorize(Roles = "Donor,NGO,Volunteer,Admin")]
     [Route("api/[controller]")]
     public class DonationsController : ControllerBase
     {
         private readonly RescueFlowDbContext _context;
         private readonly UrgencyService _urgencyService = new();
+
+private static readonly string[] ValidFoodConditions =
+{
+    "Fresh",
+    "Packed",
+    "Leftover",
+    "Near Expiry"
+};
+
+private static readonly string[] ValidStorageTypes =
+{
+    "Room Temperature",
+    "Refrigerated",
+    "Frozen"
+};
+
 
         public DonationsController(RescueFlowDbContext context)
         {
@@ -35,12 +51,28 @@ namespace RescueFlow.API.Controllers
             "Failed"
         };
 
+        private IQueryable<Donation> VisibleDonations(int userId)
+        {
+            var query = _context.Donations.AsNoTracking();
+            if (User.IsInRole("Admin")) return query;
+            if (User.IsInRole("Donor"))
+                return query.Where(d => d.DonorId == userId);
+            if (User.IsInRole("NGO"))
+                return query.Where(d => d.Status == "Available" || d.AcceptedByNgoId == userId);
+            if (User.IsInRole("Volunteer"))
+                return query.Where(d => _context.VolunteerAssignments.Any(a =>
+                    a.DonationId == d.DonationId && a.VolunteerId == userId));
+            return query.Where(d => false);
+        }
+
         // GET: api/donations
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Donation>>> GetDonations()
         {
-            var donations = await _context.Donations
-                .AsNoTracking()
+            if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out int userId) || userId <= 0)
+                return Unauthorized("Invalid user identity.");
+
+            var donations = await VisibleDonations(userId)
                 .ToListAsync();
 
             foreach (var donation in donations)
@@ -58,19 +90,14 @@ namespace RescueFlow.API.Controllers
         [HttpGet("{id:int}")]
         public async Task<ActionResult<Donation>> GetDonationById(int id)
         {
-            var donation = await _context.Donations
-                .AsNoTracking()
+            if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out int userId) || userId <= 0)
+                return Unauthorized("Invalid user identity.");
+
+            var donation = await VisibleDonations(userId)
                 .FirstOrDefaultAsync(d => d.DonationId == id);
 
             if (donation == null)
                 return NotFound("Donation not found.");
-
-
-            if (donation.Status != "Available")
-            {
-                return BadRequest(
-                    "Only available donations can be edited.");
-            }
 
             var urgency = _urgencyService.CalculateUrgency(donation);
 
@@ -99,8 +126,31 @@ namespace RescueFlow.API.Controllers
             if (string.IsNullOrWhiteSpace(donation.PickupAddress))
                 return BadRequest("Pickup address is required.");
 
-            if (string.IsNullOrWhiteSpace(donation.StorageType))
-                return BadRequest("Storage type is required.");
+
+if (!ValidFoodConditions.Contains(donation.FoodCondition))
+{
+    return BadRequest(new
+    {
+        message = "Invalid food condition. Allowed values: Fresh, Packed, Leftover, Near Expiry."
+    });
+}
+
+if (!ValidStorageTypes.Contains(donation.StorageType))
+{
+    return BadRequest(new
+    {
+        message = "Invalid storage type. Allowed values: Room Temperature, Refrigerated, Frozen."
+    });
+}
+
+if (donation.Quantity > 99999999.99m ||
+    decimal.Round(donation.Quantity, 2) != donation.Quantity)
+{
+    return BadRequest(new
+    {
+        message = "Quantity exceeds the supported range or decimal precision."
+    });
+}
 
             // DonorId must reference an existing Users.UserId.
             // The database enforces this foreign key.
@@ -119,14 +169,19 @@ namespace RescueFlow.API.Controllers
 
             donation.DonationId = 0;
             donation.Status = "Available";
+donation.AcceptedByNgoId = null;
             donation.CreatedAt = DateTime.UtcNow;
             donation.UpdatedAt = DateTime.UtcNow;
 
             var urgency = _urgencyService.CalculateUrgency(donation);
+            if (!urgency.Eligible)
+                return BadRequest(new { message = "This donation is not eligible for food rescue. Please check the food condition and pickup deadline." });
+
             donation.UrgencyScore = urgency.Score;
             donation.UrgencyLevel = urgency.Level;
 
             _context.Donations.Add(donation);
+            await NotificationService.NGOs(_context, "A new food donation is available: " + donation.FoodName);
             await _context.SaveChangesAsync();
 
             return CreatedAtAction(
@@ -137,7 +192,7 @@ namespace RescueFlow.API.Controllers
 
         // PUT: api/donations/1
         [HttpPut("{id:int}")]
-        [Authorize]
+        [Authorize(Roles = "Donor")]
         public async Task<IActionResult> UpdateDonation(
             int id, [FromBody] Donation updatedDonation)
         {
@@ -153,12 +208,14 @@ namespace RescueFlow.API.Controllers
             {
                 return Unauthorized("Invalid user identity.");
             }
-
             // Only the donation owner can update this donation.
             if (donation.DonorId != userId)
             {
                 return Forbid();
             }
+
+            if (donation.Status != "Available")
+                return BadRequest(new { message = "Only available donations can be edited." });
 
             if (string.IsNullOrWhiteSpace(updatedDonation.FoodName))
                 return BadRequest("Food name is required.");
@@ -173,8 +230,31 @@ namespace RescueFlow.API.Controllers
             if (string.IsNullOrWhiteSpace(updatedDonation.PickupAddress))
                 return BadRequest("Pickup address is required.");
 
-            if (string.IsNullOrWhiteSpace(updatedDonation.StorageType))
-                return BadRequest("Storage type is required.");
+
+if (!ValidFoodConditions.Contains(updatedDonation.FoodCondition))
+{
+    return BadRequest(new
+    {
+        message = "Invalid food condition. Allowed values: Fresh, Packed, Leftover, Near Expiry."
+    });
+}
+
+if (!ValidStorageTypes.Contains(updatedDonation.StorageType))
+{
+    return BadRequest(new
+    {
+        message = "Invalid storage type. Allowed values: Room Temperature, Refrigerated, Frozen."
+    });
+}
+
+if (updatedDonation.Quantity > 99999999.99m ||
+    decimal.Round(updatedDonation.Quantity, 2) != updatedDonation.Quantity)
+{
+    return BadRequest(new
+    {
+        message = "Quantity exceeds the supported range or decimal precision."
+    });
+}
 
             donation.FoodName = updatedDonation.FoodName;
             donation.FoodCategory = updatedDonation.FoodCategory;
@@ -190,18 +270,37 @@ namespace RescueFlow.API.Controllers
             // Preserve DonorId, Status, and CreatedAt.
             // Status is managed through the PATCH endpoint.
 
-            var urgency = _urgencyService.CalculateUrgency(donation);
-            donation.UrgencyScore = urgency.Score;
-            donation.UrgencyLevel = urgency.Level;
+var urgency = _urgencyService.CalculateUrgency(donation);
 
-            await _context.SaveChangesAsync();
+if (!urgency.Eligible)
+{
+    return BadRequest(new
+    {
+        message = "This donation is not eligible for food rescue. Please check the food condition and pickup deadline."
+    });
+}
+
+donation.UrgencyScore = urgency.Score;
+donation.UrgencyLevel = urgency.Level;
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                return Conflict(new
+                {
+                    message = "This donation has already been modified or deleted. Please refresh and try again."
+                });
+            }
 
             return Ok(donation);
         }
 
         // DELETE: api/donations/1
         [HttpDelete("{id:int}")]
-        [Authorize]
+        [Authorize(Roles = "Donor")]
         public async Task<IActionResult> DeleteDonation(int id)
         {
             var donation = await _context.Donations
@@ -210,11 +309,6 @@ namespace RescueFlow.API.Controllers
             if (donation == null)
                 return NotFound("Donation not found.");
 
-            if (donation.Status != "Available")
-            {
-                return BadRequest(
-                    "Only available donations can be deleted.");
-            }
 
             // Get logged-in user's ID from JWT.
             var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -230,9 +324,29 @@ namespace RescueFlow.API.Controllers
                 return Forbid();
             }
 
+
+if (donation.Status != "Available")
+{
+    return BadRequest(new
+    {
+        message = "Only available donations can be deleted."
+    });
+}
+
+
             _context.Donations.Remove(donation);
-        
-            await _context.SaveChangesAsync();
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                return Conflict(new
+                {
+                    message = "This donation has already been modified or deleted. Please refresh and try again."
+                });
+            }
 
             return NoContent();
         }
@@ -269,6 +383,10 @@ namespace RescueFlow.API.Controllers
 
             if (!int.TryParse(userIdClaim, out int userId))
                 return Unauthorized("Invalid user identity.");
+
+            if (User.IsInRole("NGO") && donation.Status != "Available" &&
+                donation.AcceptedByNgoId != userId)
+                return Forbid();
 
             // These statuses must be managed only through
             // VolunteerAssignmentsController.
@@ -343,12 +461,42 @@ namespace RescueFlow.API.Controllers
                     "Use the Volunteer Assignment workflow.");
             }
 
-            donation.Status = validStatus;
-            donation.UpdatedAt = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync();
+// Record the NGO that accepts the donation.
+if (validStatus == "Accepted")
+{
+    if (donation.PickupDeadline <= DateTime.UtcNow)
+    {
+        return BadRequest(new
+        {
+            message = "The pickup deadline has expired."
+        });
+    }
 
-            return Ok(donation);
+    donation.AcceptedByNgoId = userId;
+}
+
+if (validStatus == "Accepted")
+    NotificationService.Add(_context, "Donation accepted", "Your donation was accepted: " + donation.FoodName, donation.DonorId);
+else if (validStatus == "Cancelled" || validStatus == "Rejected" || validStatus == "Expired")
+    NotificationService.Add(_context, "Donation status updated", donation.FoodName + " is " + validStatus + ".", donation.DonorId == userId ? null : donation.DonorId, donation.AcceptedByNgoId == userId ? null : donation.AcceptedByNgoId);
+donation.Status = validStatus;
+donation.UpdatedAt = DateTime.UtcNow;
+
+try
+{
+    await _context.SaveChangesAsync();
+}
+catch (DbUpdateConcurrencyException)
+{
+    return Conflict(new
+    {
+        message = "This donation has already been modified. Please refresh and try again."
+    });
+}
+
+return Ok(donation);
+
         }
 
 
@@ -356,8 +504,10 @@ namespace RescueFlow.API.Controllers
         [HttpGet("{id:int}/urgency")]
         public async Task<IActionResult> GetDonationUrgency(int id)
         {
-            var donation = await _context.Donations
-                .AsNoTracking()
+            if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out int userId) || userId <= 0)
+                return Unauthorized("Invalid user identity.");
+
+            var donation = await VisibleDonations(userId)
                 .FirstOrDefaultAsync(d => d.DonationId == id);
 
             if (donation == null)
@@ -372,8 +522,10 @@ namespace RescueFlow.API.Controllers
         [HttpGet("urgency-ranking")]
         public async Task<IActionResult> GetUrgencyRanking()
         {
-            var donations = await _context.Donations
-                .AsNoTracking()
+            if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out int userId) || userId <= 0)
+                return Unauthorized("Invalid user identity.");
+
+            var donations = await VisibleDonations(userId)
                 .Where(d => d.Status == "Available")
                 .ToListAsync();
 

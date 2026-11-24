@@ -15,6 +15,10 @@ export const RegisterPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [phone, setPhone] = useState('');
+  const [organizationName, setOrganizationName] = useState('');
+  const [maximumCapacity, setMaximumCapacity] = useState('');
+  const [capacityUnit, setCapacityUnit] = useState('kg');
+  const [location, setLocation] = useState('');
   const [role, setRole] = useState<UserRole>('Donor');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -23,8 +27,8 @@ export const RegisterPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    if (!fullName.trim() || !email.trim() || password.length < 6) {
-      setError('Full name, valid email, and a password of at least 6 characters are required.');
+    if (!fullName.trim() || !email.trim() || password.length < 8 || new TextEncoder().encode(password).length > 72) {
+      setError('Full name, valid email, and a password of 8 characters (maximum 72 bytes) are required.');
       return;
     }
     setSubmitting(true);
@@ -34,7 +38,8 @@ export const RegisterPage: React.FC = () => {
         email: email.trim(),
         password,
         role,
-        phone: phone.trim() || undefined
+        phone: phone.trim() || undefined,
+        ...(role === "NGO" ? { organizationName, maximumCapacity: Number(maximumCapacity), capacityUnit, location } : {})
       });
       showToast(`Account created for ${res.fullName} (${res.role})!`, 'success');
       navigate('/dashboard');
@@ -114,15 +119,22 @@ export const RegisterPage: React.FC = () => {
               <option value="Donor">Donor</option>
               <option value="Volunteer">Volunteer</option>
               <option value="NGO">NGO</option>
+              
             </select>
             {role === 'NGO' && (
               <p className="mt-1.5 flex items-start gap-1.5 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2">
                 <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-                <span>Note: The current backend restricts public registration to Donor and Volunteer; NGO accounts must be provisioned in SQL Server unless backend registration is updated.</span>
+                <span>NGO accounts require administrator approval before rescue operations.</span>
               </p>
             )}
           </div>
 
+          {role === 'NGO' && <div className="space-y-2">
+            <label>Organization name<input className="w-full border rounded p-2" required maxLength={200} value={organizationName} onChange={e=>setOrganizationName(e.target.value)} /></label>
+            <label>Maximum capacity<input className="w-full border rounded p-2" type="number" required min="0.01" max="99999999.99" step="0.01" value={maximumCapacity} onChange={e=>setMaximumCapacity(e.target.value)} /></label>
+            <label>Capacity unit<input className="w-full border rounded p-2" required maxLength={20} value={capacityUnit} onChange={e=>setCapacityUnit(e.target.value)} /></label>
+            <label>Location<input className="w-full border rounded p-2" required maxLength={500} value={location} onChange={e=>setLocation(e.target.value)} /></label>
+          </div>}
           <div>
             <label htmlFor="password" className="block text-xs font-semibold text-slate-700 mb-1">Password</label>
             <div className="relative">
@@ -130,10 +142,10 @@ export const RegisterPage: React.FC = () => {
                 id="password"
                 type={showPassword ? 'text' : 'password'}
                 required
-                minLength={6}
+                minLength={8}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Minimum 6 characters"
+                placeholder="Minimum 8 characters"
                 className="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
               <button
