@@ -1,188 +1,143 @@
-# RescueFlow AI 🚨🍱
+﻿# RescueFlow AI
 
-### Intelligent Food Waste Prevention & Redistribution System
+An intelligent food rescue and redistribution platform connecting food donors, NGOs, volunteers and administrators to reduce food waste.
 
-RescueFlow AI is a web-based platform designed to reduce food waste by connecting food donors with NGOs that can redistribute surplus food to people in need.
+## Features
 
-The system prioritizes food donations based on urgency and matches eligible NGOs to donations, helping ensure that surplus food is redistributed efficiently and on time.
+- Role-based registration and authentication
+- JWT authentication and authorization
+- Food donation management
+- Rule-based urgency scoring and prioritization
+- NGO registration and administrator verification
+- Volunteer assignment and pickup management
+- Food delivery and rescue completion
+- Notifications and impact dashboards
 
-## 🎯 Objectives
+## Technology Stack
 
-- Reduce food wastage by redistributing surplus food.
-- Connect food donors with eligible NGOs.
-- Prioritize donations using an urgency scoring mechanism.
-- Manage donation acceptance and pickup workflows.
-- Track food redistribution and social impact.
-
-## ✨ Key Features
-
-- **Food Donation Management** – Donors can register surplus food donations.
-- **Urgency Scoring** – Prioritizes donations based on expiry time, food condition, and quantity.
-- **NGO Matching** – Matches donations with eligible NGOs based on category, capacity, condition, and simulated proximity.
-- **Donation Acceptance** – NGOs can accept or reject donation requests.
-- **Pickup Management** – Tracks pickup and delivery statuses.
-- **Impact Dashboard** – Displays completed donations and food redistribution statistics.
-
-## 🧠 AI Logic
-
-The project uses a rule-based intelligence mechanism rather than a trained machine-learning model.
-
-### Donation Urgency Score
-
-| Parameter | Maximum Score |
-|---|---:|
-| Time remaining | 50 |
-| Food condition | 30 |
-| Quantity | 20 |
-| **Total** | **100** |
-
-Urgency categories:
-
-- Critical
-- High
-- Medium
-- Low
-
-### NGO Matching
-
-NGOs are matched based on:
-
-- Active and verified NGO status
-- Food category compatibility
-- Food condition eligibility
-- NGO capacity
-- Simulated proximity
-
-## 🛠️ Technology Stack
-
-| Component | Technology |
+| Layer | Technology |
 |---|---|
-| Backend | C#, ASP.NET Core Web API |
-| Framework | .NET 10 |
-| Database | SQL Server 2025 |
+| Frontend | React, TypeScript, Vite |
+| Backend | ASP.NET Core Web API, .NET 10 |
 | ORM | Entity Framework Core |
-| Frontend | HTML, CSS, JavaScript, Bootstrap |
-| API Testing | Swagger, Postman |
-| Version Control | Git, GitHub |
-| IDE / Development Tools | Visual Studio, Antigravity |
-| Unit Testing | xUnit |
+| Database | Microsoft SQL Server 2022 |
+| Authentication | JWT |
+| Web Server | Nginx |
+| Containerization | Docker |
+| Deployment | Coolify |
+| Continuous Integration | GitHub Actions |
+| Continuous Deployment | Local systemd deployment service |
+| Hosting Environment | Ubuntu WSL2 |
 
-## 🏗️ System Architecture
+## System Architecture
 
-The application follows a layered architecture:
+```mermaid
+flowchart TD
+    U[Users] --> F[React Frontend / Nginx]
+    F --> B[ASP.NET Core Web API]
+    B --> A[Authentication and Authorization]
+    B --> E[Urgency Scoring Engine]
+    B --> D[(SQL Server)]
+```
 
-- Frontend – user interface and interactions
-- API – HTTP endpoints and request handling
-- Business Logic – urgency scoring, NGO matching and workflow logic
-- Data Access – Entity Framework Core
-- Database – SQL Server
+## User Roles
 
-## 👥 Project Team
-
-RescueFlow AI is developed collaboratively by a four-member team.
-
-| Member | Responsibility |
+| Role | Responsibilities |
 |---|---|
-| Member 1 | Frontend Development |
-| Member 2 | Backend API Development |
-| Member 3 | Integration / Application Development |
-| Member 4 | Database, AI Logic and Testing |
+| Donor | Create and manage food donations |
+| NGO | Accept donations and assign volunteers |
+| Volunteer | Pick up and deliver food |
+| Administrator | Verify NGOs and manage users |
 
-## 🚀 Getting Started
+## Donation Lifecycle
 
-### Prerequisites
+Available -> Accepted -> Assigned -> PickedUp -> Delivered -> Completed
 
-- .NET 10 SDK
-- SQL Server 2025
-- SQL Server Management Studio (SSMS)
-- Git
-- Visual Studio or another compatible IDE
+## Database
 
-### Clone the Repository
+Database name: RescueFlowDB
 
-```bash
-git clone https://github.com/soumya2321/RescueFlow-AI.git
-cd RescueFlow-AI
+- Users
+- Donations
+- NGOProfiles
+- NGOAcceptedCategories
+- VolunteerAssignments
+- PickupTasks
+- Notifications
+
+## DevOps Pipeline
+
+```mermaid
+flowchart TD
+    A[Developer] --> B[GitHub Repository]
+    B --> C[GitHub Actions CI]
+    C --> D{CI Successful?}
+    D -->|No| E[Review and Fix]
+    D -->|Yes| F[Local CD Service]
+    F --> G[Coolify API]
+    G --> H[Docker Backend]
+    G --> I[Docker Frontend]
+    H --> J[(SQL Server)]
+    I --> H
 ```
 
-### Database Setup
+The local deployment service checks GitHub Actions every 60 seconds and requests deployment when CI succeeds on the main branch.
 
-1. Open SQL Server Management Studio.
-2. Connect to your SQL Server instance.
-3. Execute the database scripts available in the `database/scripts/` directory in the documented order.
-4. Verify that the database and tables have been created successfully.
+## Local Deployment
 
-### Run the Backend API
+- Application: http://localhost:8090
+- Coolify dashboard: http://localhost:8000
+- Backend internal port: 8080
+- SQL Server internal port: 1433
 
-```bash
-dotnet restore
-dotnet build
-dotnet run --project RescueFlow.API/RescueFlow.API.csproj
-```
+The frontend communicates with the backend through an Nginx reverse proxy.
 
-Use Swagger to explore and test available API endpoints when Swagger is configured and enabled.
+SQL Server uses persistent Docker volume storage.
 
-## 🌿 Git Workflow
+## Testing Results
 
-- `main` – stable and reviewed code
-- Feature branches – individual development work
+The deployment verification completed all seven infrastructure checks.
 
-All changes should be developed on feature branches and submitted through Pull Requests.
+The end-to-end test completed all twelve workflow stages, including:
 
-Direct pushes to `main` are not permitted.
+- User registration and login
+- NGO approval
+- Donation creation
+- Urgency scoring
+- NGO acceptance
+- Volunteer assignment
+- Pickup and delivery
+- Rescue completion
+- Dashboard and notification access
+- Database persistence
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for development and contribution guidelines.
+The test donation received an urgency score of 65/100, classified as High, and successfully reached Completed status.
 
-## 📂 Project Structure
+Automatic backend and frontend deployments were also verified.
 
-```text
-RescueFlow-AI/
-│
-├── RescueFlow.API/
-│   ├── Controllers/
-│   ├── Data/
-│   ├── Models/
-│   ├── Services/
-│   └── Program.cs
-│
-├── database/
-│   ├── scripts/
-│   ├── docs/
-│   └── diagrams/
-│
-├── docs/
-│   ├── architecture/
-│   ├── api/
-│   └── testing/
-│
-├── tests/
-│
-├── CONTRIBUTING.md
-├── README.md
-└── .gitignore
-```
+## Security
 
-## 📊 Project Scope
+- JWT-based authentication
+- Role-based authorization
+- Password hashing
+- Environment-based secret configuration
+- Internal Docker networking
+- Persistent database storage
 
-The project focuses on:
+Never commit database passwords, JWT signing keys or Coolify API tokens.
 
-- Food donation registration
-- Rule-based urgency calculation
-- NGO eligibility and matching
-- Donation acceptance and rejection
-- Pickup and delivery workflow
-- Redistribution impact tracking
+## Deployment Limitations
 
-Advanced machine learning, real GPS tracking, route optimization, payment processing, IoT integration and mobile applications are outside the current project scope.
+The current deployment is intended for local academic demonstration.
 
-## 📄 Documentation
+Ubuntu WSL2 and the host computer must remain running for the application and automatic deployment service to operate.
 
-- Database design and schema – `database/docs/`
-- Database scripts – `database/scripts/`
-- Architecture documentation – `docs/architecture/`
-- API documentation – `docs/api/`
-- Testing documentation – `docs/testing/`
+Public hosting, production HTTPS and comprehensive security testing remain future improvements.
 
-## 📜 License
+## Repository
 
-This project is developed for academic purposes.
+https://github.com/soumya2321/RescueFlow-AI
+
+## Project Status
+
+Implemented, locally deployed and end-to-end workflow tested.
